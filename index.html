@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无言 - 小游戏站点</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            color: #333842;
+            line-height: 1.6;
+        }
+        /* 导航栏 */
+        nav {
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .nav-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 2rem;
+        }
+        .nav-container a {
+            margin-left: 2.2rem;
+            text-decoration: none;
+            color: #333842;
+            font-weight: 500;
+            transition: color 0.25s;
+        }
+        .nav-container a:hover {
+            color: #4A90D9;
+        }
+        /* 主容器 */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        /* 首页头部 */
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #4A90D9;
+            margin-bottom: 1.2rem;
+        }
+        h1 {
+            font-size: 2.4rem;
+            color: #222831;
+            margin-bottom: 0.6rem;
+        }
+        .slogan {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 2rem;
+        }
+        /* 通用区块样式 */
+        .section {
+            margin-bottom: 4rem;
+        }
+        .section h2 {
+            font-size:1.6rem;
+            color:#222831;
+            border-left:4px solid #4A90D9;
+            padding-left:12px;
+            margin-bottom:1rem;
+        }
+        /* 游戏卡片区域 */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+            gap: 20px;
+        }
+        .game-card {
+            background: #fff;
+            padding: 20px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.05);
+            text-align:center;
+            transition: transform 0.25s;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+        .game-card a {
+            display:inline-block;
+            margin-top:12px;
+            padding:8px 18px;
+            background:#4A90D9;
+            color:white;
+            text-decoration:none;
+            border-radius:8px;
+        }
+        .game-card a:hover{
+            background:#3b7fc4;
+        }
+        /* 社交图标 */
+        .social-wrap {
+            text-align:center;
+            margin:3rem 0;
+        }
+        .social-links a {
+            display:inline-block;
+            width:48px;
+            height:48px;
+            line-height:48px;
+            border-radius:50%;
+            background:#fff;
+            border:1px solid #4A90D9;
+            color:#4A90D9;
+            text-decoration:none;
+            margin:0 8px;
+            transition: all 0.25s;
+        }
+        .social-links a:hover {
+            background:#4A90D9;
+            color:white;
+        }
+        /* 页脚 */
+        footer {
+            text-align:center;
+            padding:2rem;
+            color:#777;
+            font-size:0.9rem;
+        }
+        /* 移动端适配 */
+        @media (max-width: 600px) {
+            .nav-container {
+                justify-content:center;
+            }
+            .nav-container a {
+                margin:0 0.8rem;
+            }
+            h1 {
+                font-size:2rem;
+            }
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <!--导航栏-->
+    <nav>
+        <div class="nav-container">
+            <a href="#home">首页</a>
+            <a href="#game">游戏</a>
+            <a href="#contact">联系我</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!--首页区域-->
+        <div class="hero" id="home">
+            <img class="avatar" src="https://github.com/goutoudadui/wuyan.github.io/blob/main/screenshot_20260926_190149_com.ss.hm.ugc.aweme.jpg?raw=true" alt="头像">
+            <h1>无言</h1>
+            <p class="slogan">无言牛逼👍</p>
+        </div>
+
+        <!--游戏区域-->
+        <div class="section" id="game">
+            <h2>小游戏</h2>
+            <div class="game-grid">
+                <div class="game-card">
+                    <h3>奶蛙工厂</h3>
+                    <p>抓奶蛙休闲小游戏</p>
+                    <a href="https://66970010-boop.github.io/frog-miner/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>奶蛙消消乐</h3>
+                    <p>滑动消除休闲游戏</p>
+                    <a href="https://chenckx0614.github.io/naiwaxxl/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>奶娃的小窝</h3>
+                    <p>养成陪伴小游戏</p>
+                    <a href="https://naiwaxiaowu.pages.dev/" target="_blank">开始游玩</a>
+                </div>
+            </div>
+        </div>
+
+        <!--联系我区域-->
+        <div class="section" id="contact">
+            <h2>联系我</h2>
+            <div class="social-wrap">
+                <div class="social-links">
+                    <a href="#" target="_blank">G</a>
+                    <a href="#" target="_blank">B</a>
+                    <a href="#" target="_blank">T</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        © 2026 WUYAN. All rights reserved.
+    </footer>
+
+    <script>
+        //导航栏滚...
