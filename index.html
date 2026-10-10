@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#141c21">
+<title>拆螺丝 v5</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    width: 100%;
+    background: #141c21;
+    overflow: hidden;
+    position: fixed;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  #wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  #game {
+    display: block;
+    touch-action: none;
+    border-radius: 12px;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, .6);
+    max-width: 100%;
+  }
+  #controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+  #controls button {
+    padding: 0 18px;
+    border: none;
+    border-radius: 10px;
+    background: #37474f;
+    color: #eceff1;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    height: 46px;
+    min-width: 46px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .15s, transform .1s;
+  }
+  #controls button:active { background: #263238; transform: scale(0.96); }
+  #controls .iconBtn { width: 46px; padding: 0; font-size: 20px; }
+  #controls .iconBtn.active { background: #2e7d32; }
+
+  /* ============ BGM 设置面板 ============ */
+  #bgmPanel {
+    position: fixed;
+    left: 50%;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    width: min(380px, calc(100vw - 24px));
+    background: #1e2a30;
+    border: 1px solid #2f3d44;
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 16px 50px rgba(0,0,0,.7);
+    z-index: 100;
+    display: none;
+    color: #cfd8dc;
+    font-size: 14px;
+  }
+  #bgmPanel.show {
+    display: block;
+    animation: bgmIn .18s ease-out;
+  }
+  @keyframes bgmIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(30px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  #bgmPanel .title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #eceff1;
+    margin-bottom: 14px;
+  }
+  #bgmPanel .title .close-x {
+    background: none;
+    border: none;
+    color: #78909c;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  #bgmPanel .title .close-x:active { color: #cfd8dc; }
+
+  .bgm-file {
+    background: #131b1f;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+  }
+  .bgm-file .icon {
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+  .bgm-file .info {
+    flex: 1;
+    min-width: 0;
+  }
+  .bgm-file .name {
+    color: #eceff1;
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bgm-file .sub {
+    color: #546e7a;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .bgm-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .bgm-actions button,
+  .bgm-actions label {
+    flex: 1;
+    height: 42px;
+    border: none;
+    border-radius: 10px;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    transition: background .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bgm-actions button:active,
+  .bgm-actions label:active { transform: scale(0.97); }
+  .bgm-actions .secondary { background: #455a64; }
+  .bgm-actions .danger { background: #b71c1c; }
+  .bgm-actions button:disabled {
+    background: #263238;
+    color: #455a64;
+    cursor: not-allowed;
+  }
+
+  .bgm-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 2px;
+  }
+  .bgm-slider-row .label {
+    font-size: 13px;
+    color: #90a4ae;
+    flex: 0 0 auto;
+    min-width: 36px;
+  }
+  .bgm-slider-row .val {
+    font-size: 13px;
+    color: #cfd8dc;
+    flex: 0 0 auto;
+    min-width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
+    background: #37474f;
+    border-radius: 3px;
+    outline: none;
+    touch-action: manipulation;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #26c6da;
+    cursor: pointer;
+    border: 2px solid #1e2a30;
+    box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #26c6da;
+    cursor: pointer;
+    border: 2px solid #1e2a30;
+    box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  input[type=range]::-moz-range-track {
+    height: 6px;
+    background: #37474f;
+    border-radius: 3px;
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #37474f;
+    font-size: 11px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="controls">
+    <button id="restartBtn">重开本局</button>
+    <button id="bgmBtn" class="iconBtn">🎵</button>
+    <button id="muteBtn" class="iconBtn">🔊</button>
+  </div>
+</div>
+
+<!-- BGM 设置面板 -->
+<div id="bgmPanel">
+  <div class="title">
+    <span>🎵 背景音乐</span>
+    <button class="close-x" id="bgmCloseX">×</button>
+  </div>
+
+  <div class="bgm-file">
+    <div class="icon" id="bgmIcon">🎶</div>
+    <div class="info">
+      <div class="name" id="bgmName">未导入音乐</div>
+      <div class="sub" id="bgmSub">支持 mp3 / wav / ogg / m4a 等格式</div>
+    </div>
+  </div>
+
+  <div class="bgm-actions">
+    <label for="bgmFile" id="bgmPickLabel">📁 选择音乐</label>
+    <input id="bgmFile" type="file" accept="audio/*" style="display:none">
+    <button id="bgmClear" class="secondary" disabled>🗑 清除</button>
+  </div>
+
+  <div class="bgm-slider-row">
+    <span class="label">音量</span>
+    <input id="bgmVol" type="range" min="0" max="1" step="0.05" value="0.5">
+    <span class="val" id="bgmVolVal">50%</span>
+  </div>
+</div>
+
+<div id="hint">横竖屏自动适配 · 点螺丝拆下</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ==================== 布局配置 ====================
+  const LAYOUTS = {
+    landscape: {
+      W: 880, H: 680,
+      topbarH: 58, progressY: 58, progressH: 12,
+      plateArea: { x1: 70, x2: 810, y1: 84, y2: 442 },
+      plateShrinkX: 0.32, plateShrinkY: 0.22,
+      boxY: 512, boxW: 150, boxH: 115, boxGap: 25, boxTopBar: 26,
+      timerBarY: 6, timerBarH: 18, infoY: 41
+    },
+    portrait: {
+      W: 680, H: 1000,
+      topbarH: 68, progressY: 68, progressH: 16,
+      plateArea: { x1: 40, x2: 640, y1: 108, y2: 690 },
+      plateShrinkX: 0.30, plateShrinkY: 0.28,
+      boxY: 738, boxW: 152, boxH: 132, boxGap: 12, boxTopBar: 28,
+      timerBarY: 8, timerBarH: 22, infoY: 49
+    }
+  };
+
+  // ==================== 常量 ====================
+  const SCREW_R = 11;
+  const COMBO_WINDOW = 2.0;
+  const COMBO_MAX_MULT = 5;
+  const TOTAL_TIME = 120;
+  const PLATE_BONUS = 8;
+
+  const COLORS = [
+    { name: "RED",    light: "#e74c3c", dark: "#922b21" },
+    { name: "BLUE",   light: "#3498db", dark: "#1a5276" },
+    { name: "GREEN",  light: "#2ecc71", dark: "#186a3b" },
+    { name: "YELLOW", light: "#f1c40f", dark: "#7d6608" }
+  ];
+
+  const PLATE_COLORS = ["#5d4037", "#6d4c41", "#795548", "#8d6e63", "#a1887f", "#bcaaa4"];
+
+  const DIFF = {
+    easy:   { name: "简单", plates: 3, colors: 3, capacity: 4 },
+    normal: { name: "普通", plates: 5, colors: 4, capacity: 5 },
+    hard:   { name: "困难", plates: 6, colors: 4, capacity: 6 }
+  };
+  const DIFF_ORDER = ["easy", "normal", "hard"];
+
+  // ==================== 环境 ====================
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  let ORIENT = "landscape";
+  let L = LAYOUTS.landscape;
+  let W = L.W, H = L.H;
+  const DPR = Math.min(window.devicePixelRatio || 1, 3);
+
+  // ==================== 音效（WebAudio） ====================
+  let audioCtx = null;
+  let audioEnabled = true;
+
+  function ensureAudio() {
+    if (!audioEnabled) return;
+    if (!audioCtx) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      } catch (e) { audioEnabled = false; }
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function playTone(freq, dur, type, vol, delay) {
+    if (!audioEnabled || !audioCtx) return;
+    const t0 = audioCtx.currentTime + (delay || 0);
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.03);
+  }
+
+  const sfx = {
+    unscrew(combo) { playTone(520 + Math.min(combo, 5) * 60, 0.06, "square", 0.05); },
+    drop(combo) {
+      const base = 720 + Math.min(combo, 5) * 110;
+      playTone(base, 0.11, "sine", 0.10);
+      playTone(base * 1.5, 0.09, "sine", 0.05, 0.03);
+    },
+    full() {
+      playTone(180, 0.16, "sawtooth", 0.08);
+      playTone(120, 0.18, "sawtooth", 0.06, 0.05);
+    },
+    clearLayer() {
+      [523, 659, 784, 1047].forEach((f, i) =>
+        playTone(f, 0.16, "triangle", 0.11, i * 0.06));
+    },
+    win() {
+      [523, 659, 784, 1047, 1319].forEach((f, i) =>
+        playTone(f, 0.28, "triangle", 0.13, i * 0.11));
+    },
+    lose() {
+      [440, 349, 294, 220].forEach((f, i) =>
+        playTone(f, 0.24, "sawtooth", 0.09, i * 0.11));
+    },
+    click() { playTone(660, 0.05, "sine", 0.07); }
+  };
+
+  // ==================== BGM 管理器 ====================
+  const BGM_SETTINGS_KEY = "screwgame_bgm_settings_v5";
+  const IDB_NAME = "screwgame_db";
+  const IDB_STORE = "audio";
+  const IDB_KEY = "bgm";
+
+  const bgm = {
+    el: null,
+    blobUrl: null,
+    name: "",
+    volume: 0.5,
+    ready: false,
+    started: false,     // 是否已获得播放许可（用户手势后）
+    loadFailed: false
+  };
+
+  function initBGMEl() {
+    if (bgm.el) return;
+    bgm.el = new Audio();
+    bgm.el.loop = true;
+    bgm.el.volume = bgm.volume;
+    bgm.el.preload = "auto";
+    bgm.el.addEventListener("error", () => {
+      bgm.loadFailed = true;
+      updateBGMUI();
+    });
+    bgm.el.addEventListener("canplay", () => {
+      bgm.loadFailed = false;
+      updateBGMUI();
+    });
+  }
+
+  // -------- IndexedDB --------
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      let req;
+      try { req = indexedDB.open(IDB_NAME, 1); }
+      catch (e) { return reject(e); }
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function idbPut(value) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(value, IDB_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
+  async function idbGet() {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function idbDelete() {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(IDB_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // -------- 设置持久化 --------
+  function loadBGMSettings() {
+    try {
+      const s = JSON.parse(localStorage.getItem(BGM_SETTINGS_KEY) || "{}");
+      if (typeof s.volume === "number") bgm.volume = Math.max(0, Math.min(1, s.volume));
+    } catch (e) {}
+  }
+
+  function saveBGMSettings() {
+    try {
+      localStorage.setItem(BGM_SETTINGS_KEY, JSON.stringify({
+        volume: bgm.volume
+      }));
+    } catch (e) {}
+  }
+
+  // -------- BGM 操作 --------
+  function setBGMFromBlob(blob, name) {
+    initBGMEl();
+    if (bgm.blobUrl) URL.revokeObjectURL(bgm.blobUrl);
+    bgm.blobUrl = URL.createObjectURL(blob);
+    bgm.el.src = bgm.blobUrl;
+    bgm.name = name;
+    bgm.ready = true;
+    bgm.loadFailed = false;
+    bgm.started = false;
+    updateBGMUI();
+  }
+
+  function playBGM() {
+    if (!bgm.el || !bgm.el.src) return;
+    if (!audioEnabled) { bgm.el.pause(); return; }
+    const p = bgm.el.play();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  function pauseBGM() {
+    if (bgm.el) bgm.el.pause();
+  }
+
+  function setBGMVolume(v) {
+    bgm.volume = Math.max(0, Math.min(1, v));
+    if (bgm.el) bgm.el.volume = bgm.volume;
+    saveBGMSettings();
+    updateBGMUI();
+  }
+
+  async function handleBGMFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith("audio/") && !/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(file.name)) {
+      showToast("请选择音频文件");
+      return;
+    }
+    // 大文件提醒
+    if (file.size > 60 * 1024 * 1024) {
+      if (!confirm("文件超过 60MB，可能保存失败，是否继续？")) return;
+    }
+
+    setBGMFromBlob(file, file.name);
+
+    // 保存到 IndexedDB（失败不影响当前会话）
+    try {
+      await idbPut({ blob: file, name: file.name });
+    } catch (e) {
+      console.warn("BGM 保存失败（不影响当前会话）", e);
+    }
+
+    // 用户刚选了文件，属于用户手势，可以直接播放
+    bgm.started = true;
+    playBGM();
+    showToast("已导入：" + file.name);
+  }
+
+  async function clearBGM() {
+    pauseBGM();
+    if (bgm.blobUrl) {
+      URL.revokeObjectURL(bgm.blobUrl);
+      bgm.blobUrl = null;
+    }
+    if (bgm.el) bgm.el.src = "";
+    bgm.name = "";
+    bgm.ready = false;
+    bgm.started = false;
+    try { await idbDelete(); } catch (e) {}
+    updateBGMUI();
+    showToast("已清除背景音乐");
+  }
+
+  async function restoreBGM() {
+    try {
+      const saved = await idbGet();
+      if (saved && saved.blob) {
+        setBGMFromBlob(saved.blob, saved.name || "已保存的音乐");
+      }
+    } catch (e) {
+      console.warn("恢复 BGM 失败", e);
+    }
+  }
+
+  // ==================== 最高分 ====================
+  const STORE_KEY = "screwgame_bests_v4";
+  let bests = {};
+
+  function loadBests() {
+    try { bests = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"); }
+    catch (e) { bests = {}; }
+  }
+
+  function getBest(m, d) {
+    return bests[m + "_" + d] || { score: 0, progress: 0 };
+  }
+
+  function setBest(m, d, score, progress) {
+    const key = m + "_" + d;
+    const cur = bests[key] || { score: 0, progress: 0 };
+    bests[key] = {
+      score: Math.max(cur.score, score),
+      progress: Math.max(cur.progress, progress)
+    };
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(bests)); } catch (e) {}
+  }
+
+  // ==================== 全局状态 ====================
+  let scene = "menu";
+  let mode = "timed";
+  let difficulty = "normal";
+  let menuMode = "timed";
+  let menuDiff = "normal";
+  let state = null;
+  let overTime = 0;
+  let isNewRecord = false;
+  let toast = null;
+
+  // ==================== 工具 ====================
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+  }
+
+  function colorOf(name) { return COLORS.find(c => c.name === name); }
+
+  function roundRectPath(x, y, w, h, r) {
+    if (typeof r === "number") r = [r, r, r, r];
+    const [tl, tr, br, bl] = r;
+    if (w < 0) { x += w; w = -w; }
+    if (h < 0) { y += h; h = -h; }
+    ctx.beginPath();
+    ctx.moveTo(x + tl, y);
+    ctx.lineTo(x + w - tr, y);
+    ctx.arcTo(x + w, y, x + w, y + tr, tr);
+    ctx.lineTo(x + w, y + h - br);
+    ctx.arcTo(x + w, y + h, x + w - br, y + h, br);
+    ctx.lineTo(x + bl, y + h);
+    ctx.arcTo(x, y + h, x, y + h - bl, bl);
+    ctx.lineTo(x, y + tl);
+    ctx.arcTo(x, y, x + tl, y, tl);
+    ctx.closePath();
+  }
+
+  function inRect(p, r) {
+    return p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3];
+  }
+
+  function showToast(text) {
+    toast = { text, life: 1.6, maxLife: 1.6 };
+  }
+
+  // ==================== 屏幕适配 ====================
+  function applyOrientation() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const newOrient = (vh > vw * 1.05) ? "portrait" : "landscape";
+    const changed = newOrient !== ORIENT;
+
+    ORIENT = newOrient;
+    L = LAYOUTS[ORIENT];
+    W = L.W;
+    H = L.H;
+
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    const maxW = vw - 12;
+    const maxH = vh - 74;
+    const aspect = W / H;
+
+    let cw, ch;
+    if (maxW / maxH > aspect) {
+      ch = maxH;
+      cw = ch * aspect;
+    } else {
+      cw = maxW;
+      ch = cw / aspect;
+    }
+    canvas.style.width = Math.floor(cw) + "px";
+    canvas.style.height = Math.floor(ch) + "px";
+
+    return changed;
+  }
+
+  // ==================== 布局计算 ====================
+  function boxRects() {
+    const n = state.colorList.length;
+    const bw = L.boxW, gap = L.boxGap;
+    const totalW = n * bw + (n - 1) * gap;
+    const startX = (W - totalW) / 2;
+    const arr = [];
+    for (let i = 0; i < n; i++) {
+      const x = startX + i * (bw + gap);
+      arr.push([x, L.boxY, x + bw, L.boxY + L.boxH]);
+    }
+    return arr;
+  }
+
+  function slotPos(i, s) {
+    const r = boxRects()[i];
+    const bw = r[2] - r[0];
+    const bh = r[3] - r[1];
+    const col = s % 3, row = (s / 3) | 0;
+    const colW = bw / 3;
+    const rowH = (bh - L.boxTopBar) / 2;
+    return [r[0] + colW * (col + 0.5), r[1] + L.boxTopBar + rowH * (row + 0.5)];
+  }
+
+  // ==================== 菜单布局 ====================
+  function menuLayout() {
+    if (ORIENT === "portrait") {
+      return {
+        titleY: 115, titleSize: 66, subY: 178,
+        modeLabelY: 252,
+        modeBtns: [
+          { id: "timed", rect: [36, 282, 332, 368] },
+          { id: "zen",   rect: [348, 282, 644, 368] }
+        ],
+        diffLabelY: 438,
+        diffBtns: [
+          { id: "easy",   rect: [28, 468, 218, 552] },
+          { id: "normal", rect: [230, 468, 450, 552] },
+          { id: "hard",   rect: [462, 468, 652, 552] }
+        ],
+        best: { x1: 50, y1: 600, x2: 630, y2: 742 },
+        start: [90, 786, 590, 892]
+      };
+    }
+    return {
+      titleY: 72, titleSize: 52, subY: 114,
+      modeLabelY: 154,
+      modeBtns: [
+        { id: "timed", rect: [222, 174, 428, 240] },
+        { id: "zen",   rect: [452, 174, 658, 240] }
+      ],
+      diffLabelY: 274,
+      diffBtns: [
+        { id: "easy",   rect: [238, 294, 358, 360] },
+        { id: "normal", rect: [380, 294, 500, 360] },
+        { id: "hard",   rect: [522, 294, 642, 360] }
+      ],
+      best: { x1: 180, y1: 386, x2: 700, y2: 480 },
+      start: [280, 506, 600, 588]
+    };
+  }
+
+  function overButtons() {
+    const cx = W / 2;
+    const cy = ORIENT === "portrait" ? 480 : 265
