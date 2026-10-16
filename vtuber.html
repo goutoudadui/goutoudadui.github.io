@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟主播模拟器</title>
+<style>
+  :root {
+    --primary: #7c5cbf;
+    --primary-light: #a87fd4;
+    --primary-dark: #5a3d9a;
+    --accent: #ff6eb4;
+    --bg: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --card: #1e1e35;
+    --card2: #252545;
+    --text: #e8e8f0;
+    --text2: #9999bb;
+    --danger: #ff4466;
+    --success: #44ffaa;
+    --warning: #ffaa44;
+    --border: #33335a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  /* ===== SETUP SCREENS ===== */
+  #setup-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%); }
+  .setup-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 40px; max-width: 700px; width: 100%; box-shadow: 0 20px 60px rgba(124,92,191,0.3); }
+  .setup-title { text-align: center; font-size: 2em; font-weight: bold; background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .setup-subtitle { text-align: center; color: var(--text2); margin-bottom: 30px; font-size: 0.95em; }
+  .setup-step { display: none; }
+  .setup-step.active { display: block; }
+  .step-title { font-size: 1.2em; font-weight: bold; color: var(--primary-light); margin-bottom: 20px; text-align: center; }
+  .guild-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  .guild-card { background: var(--card2); border: 2px solid var(--border); border-radius: 15px; padding: 20px; cursor: pointer; transition: all 0.3s; text-align: center; }
+  .guild-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(124,92,191,0.3); }
+  .guild-card.selected { border-color: var(--accent); background: rgba(255,110,180,0.1); }
+  .guild-emoji { font-size: 2.5em; margin-bottom: 8px; }
+  .guild-name { font-weight: bold; font-size: 1.1em; margin-bottom: 4px; }
+  .guild-tag { color: var(--accent); font-size: 0.85em; font-weight: bold; }
+  .guild-desc { color: var(--text2); font-size: 0.8em; margin-top: 6px; }
+  .form-group { margin-bottom: 20px; }
+  .form-label { display: block; color: var(--text2); font-size: 0.9em; margin-bottom: 8px; }
+  .form-input { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; color: var(--text); font-size: 1em; outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--primary); }
+  .gender-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .gender-btn { background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 15px; cursor: pointer; text-align: center; transition: all 0.3s; font-size: 1em; color: var(--text); }
+  .gender-btn:hover { border-color: var(--primary); }
+  .gender-btn.selected { border-color: var(--accent); background: rgba(255,110,180,0.1); }
+  .tags-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tag-btn { background: var(--card2); border: 2px solid var(--border); border-radius: 20px; padding: 8px 12px; cursor: pointer; text-align: center; transition: all 0.3s; font-size: 0.85em; color: var(--text); }
+  .tag-btn:hover { border-color: var(--primary); }
+  .tag-btn.selected { border-color: var(--accent); background: rgba(255,110,180,0.15); color: var(--accent); }
+  .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); border: none; border-radius: 12px; padding: 14px 30px; color: white; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s; width: 100%; margin-top: 10px; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(124,92,191,0.5); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: var(--card2); border: 1px solid var(--border); color: var(--text2); }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--text); box-shadow: none; }
+  .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
+  .step-dot.active { background: var(--accent); transform: scale(1.3); }
+  .step-dot.done { background: var(--primary); }
+
+  /* ===== MAIN GAME ===== */
+  #game-screen { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+  .top-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 100; }
+  .player-info { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 1.4em; border: 2px solid var(--accent); }
+  .player-name { font-weight: bold; font-size: 1em; }
+  .player-guild { color: var(--accent); font-size: 0.8em; }
+  .top-stats { display: flex; gap: 20px; align-items: center; }
+  .top-stat { text-align: center; }
+  .top-stat-val { font-weight: bold; color: var(--primary-light); font-size: 0.95em; }
+  .top-stat-label { color: var(--text2); font-size: 0.7em; }
+  .day-info { text-align: center; }
+  .day-num { font-size: 1.3em; font-weight: bold; color: var(--accent); }
+  .day-label { font-size: 0.7em; color: var(--text2); }
+  .end-day-btn { background: linear-gradient(135deg, #ff6eb4, #7c5cbf); border: none; border-radius: 10px; padding: 8px 18px; color: white; font-weight: bold; cursor: pointer; font-size: 0.85em; transition: all 0.3s; }
+  .end-day-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,110,180,0.4); }
+
+  .main-content { display: flex; flex: 1; overflow: hidden; }
+  .tab-sidebar { background: var(--bg2); border-right: 1px solid var(--border); width: 70px; display: flex; flex-direction: column; align-items: center; padding: 15px 0; gap: 8px; flex-shrink: 0; }
+  .tab-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; font-size: 1.4em; gap: 2px; }
+  .tab-icon span.label { font-size: 0.5em; color: var(--text2); }
+  .tab-icon:hover { background: var(--card); }
+  .tab-icon.active { background: rgba(124,92,191,0.3); border-color: var(--primary); }
+  .tab-icon .badge { position: absolute; top: -3px; right: -3px; background: var(--danger); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6em; display: flex; align-items: center; justify-content: center; }
+  .tab-icon { position: relative; }
+
+  .panel { display: none; flex: 1; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  /* ===== CHAT PANEL ===== */
+  .chat-panel { flex: 1; display: flex; overflow: hidden; }
+  .chat-list { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+  .chat-list-title { padding: 15px; font-size: 0.85em; color: var(--text2); font-weight: bold; border-bottom: 1px solid var(--border); }
+  .chat-item { padding: 12px 15px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(51,51,90,0.3); }
+  .chat-item:hover { background: var(--card); }
+  .chat-item.active { background: rgba(124,92,191,0.2); border-left: 3px solid var(--primary); }
+  .chat-item-name { font-size: 0.9em; font-weight: bold; margin-bottom: 3px; }
+  .chat-item-preview { font-size: 0.75em; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-item-badge { background: var(--danger); color: white; border-radius: 10px; padding: 1px 6px; font-size: 0.65em; float: right; }
+  .chat-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-header { padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--border); font-weight: bold; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+  .message { display: flex; gap: 10px; max-width: 80%; }
+  .message.mine { flex-direction: row-reverse; align-self: flex-end; }
+  .msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--card2); display: flex; align-items: center; justify-content: center; font-size: 1em; flex-shrink: 0; }
+  .msg-content { background: var(--card2); border-radius: 12px; padding: 8px 12px; max-width: 100%; }
+  .message.mine .msg-content { background: rgba(124,92,191,0.4); }
+  .msg-name { font-size: 0.7em; color: var(--text2); margin-bottom: 3px; }
+  .msg-text { font-size: 0.88em; line-height: 1.5; word-break: break-word; }
+  .msg-text.red-text { color: #ff4466; }
+  .msg-time { font-size: 0.65em; color: var(--text2); margin-top: 3px; text-align: right; }
+  .chat-input-area { padding: 12px 15px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+  .chat-input { flex: 1; background: var(--card2); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; color: var(--text); font-size: 0.9em; outline: none; resize: none; max-height: 80px; font-family: inherit; }
+  .chat-input:focus { border-color: var(--primary); }
+  .send-btn { background: var(--primary); border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 1em; flex-shrink: 0; transition: all 0.2s; }
+  .send-btn:hover { background: var(--primary-light); transform: scale(1.1); }
+  .system-msg { text-align: center; color: var(--text2); font-size: 0.75em; padding: 5px 15px; background: rgba(51,51,90,0.3); border-radius: 20px; align-self: center; }
+  .message-full { max-width: 100%; }
+
+  /* ===== LIVE PANEL ===== */
+  .live-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .live-header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .live-header h2 { font-size: 1.1em; margin-bottom: 5px; }
+  .live-header p { color: var(--text2); font-size: 0.85em; }
+  .live-content { flex: 1; display: flex; overflow: hidden; }
+  .live-main { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; gap: 15px; }
+  .live-screen { background: #000; border-radius: 15px; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 2px solid var(--border); max-height: 220px; }
+  .live-screen.on-air { border-color: var(--danger); }
+  .live-screen-content { text-align: center; }
+  .live-emoji { font-size: 4em; }
+  .live-status-text { color: var(--text2); margin-top: 10px; font-size: 0.9em; }
+  .on-air-badge { position: absolute; top: 10px; left: 10px; background: var(--danger); color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+  .live-viewers { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75em; }
+  .topic-selection { background: var(--card); border-radius: 15px; padding: 20px; }
+  .topic-selection h3 { margin-bottom: 15px; font-size: 1em; color: var(--primary-light); }
+  .topics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .topic-btn { background: var(--card2); border: 2px solid var(--border); border-radius: 10px; padding: 12px 8px; cursor: pointer; text-align: center; transition: all 0.3s; font-size: 0.85em; color: var(--text); }
+  .topic-btn:hover { border-color: var(--primary); }
+  .topic-btn.selected { border-color: var(--accent); background: rgba(255,110,180,0.1); }
+  .live-actions { display: flex; gap: 10px; }
+  .live-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9em; transition: all 0.3s; }
+  .start-btn { background: linear-gradient(135deg, var(--danger), #ff8866); color: white; }
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,68,102,0.4); }
+  .end-stream-btn { background: var(--card2); border: 1px solid var(--border); color: var(--text); }
+  .end-stream-btn:hover { border-color: var(--danger); color: var(--danger); }
+  .collab-notice { background: rgba(124,92,191,0.2); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; }
+  .collab-notice h4 { color: var(--primary-light); margin-bottom: 8px; }
+  .collab-notice p { font-size: 0.85em; color: var(--text2); margin-bottom: 12px; }
+  .collab-btns { display: flex; gap: 10px; }
+  .accept-btn { flex: 1; background: var(--success); border: none; border-radius: 8px; padding: 8px; color: #000; font-weight: bold; cursor: pointer; font-size: 0.85em; }
+  .decline-btn { flex: 1; background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--text2); cursor: pointer; font-size: 0.85em; }
+
+  .live-danmu { width: 280px; background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+  .danmu-header { padding: 12px 15px; background: var(--card); border-bottom: 1px solid var(--border); font-size: 0.9em; font-weight: bold; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+  .danmu-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .danmu-item { background: var(--card2); border-radius: 8px; padding: 6px 10px; font-size: 0.8em; display: flex; justify-content: space-between; align-items: flex-start; gap: 5px; }
+  .danmu-item.bad { background: rgba(255,68,102,0.15); border: 1px solid rgba(255,68,102,0.3); }
+  .danmu-user { color: var(--primary-light); font-weight: bold; font-size: 0.85em; flex-shrink: 0; }
+  .danmu-text { flex: 1; word-break: break-word; }
+  .danmu-del { color: var(--danger); cursor: pointer; font-size: 1em; flex-shrink: 0; padding: 0 2px; }
+  .danmu-del:hover { color: #ff6688; }
+  .danmu-count { background: rgba(255,68,102,0.3); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7em; }
+
+  /* ===== STATUS PANEL ===== */
+  .status-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 20px; }
+  .status-card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid var(--border); }
+  .status-card h3 { font-size: 1em; color: var(--primary-light); margin-bottom: 15px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(51,51,90,0.5); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color: var(--text2); font-size: 0.9em; }
+  .stat-value { font-weight: bold; font-size: 1em; }
+  .stress-bar { height: 12px; background: var(--card2); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+  .stress-fill { height: 100%; border-radius: 6px; transition: width 0.5s, background 0.5s; }
+  .fan-bar { height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .fan-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 4px; transition: width 0.5s; }
+  .btn-danger { background: linear-gradient(135deg, #ff4466, #ff6644); border: none; border-radius: 12px; padding: 14px; color: white; font-weight: bold; cursor: pointer; font-size: 0.9em; width: 100%; transition: all 0.3s; }
+  .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,68,102,0.4); }
+  .btn-success { background: linear-gradient(135deg, #44ffaa, #44aaff); border: none; border-radius: 12px; padding: 12px; color: #000; font-weight: bold; cursor: pointer; font-size: 0.9em; width: 100%; margin-top: 10px; transition: all 0.3s; }
+  .btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(68,255,170,0.4); }
+  .tags-display { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-display { background: rgba(124,92,191,0.2); border: 1px solid var(--primary); border-radius: 20px; padding: 4px 12px; font-size: 0.8em; color: var(--primary-light); }
+
+  /* ===== RESOURCE PANEL ===== */
+  .resource-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 15px; }
+  .resource-panel h2 { font-size: 1.1em; color: var(--primary-light); margin-bottom: 5px; }
+  .resource-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+  .resource-card { background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 18px; transition: all 0.3s; }
+  .resource-card:hover { border-color: var(--primary); }
+  .resource-emoji { font-size: 2em; margin-bottom: 8px; }
+  .resource-name { font-weight: bold; font-size: 0.95em; margin-bottom: 5px; }
+  .resource-desc { color: var(--text2); font-size: 0.8em; margin-bottom: 12px; line-height: 1.4; }
+  .resource-cost { color: var(--warning); font-size: 0.85em; margin-bottom: 10px; font-weight: bold; }
+  .resource-btns { display: flex; gap: 8px; }
+  .buy-btn { flex: 1; background: var(--primary); border: none; border-radius: 8px; padding: 8px; color: white; font-size: 0.8em; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+  .buy-btn:hover { background: var(--primary-light); }
+  .apply-btn { flex: 1; background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--text2); font-size: 0.8em; cursor: pointer; transition: all 0.2s; }
+  .apply-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .apply-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ===== MODALS ===== */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .modal h3 { font-size: 1.2em; margin-bottom: 15px; color: var(--primary-light); }
+  .modal p { color: var(--text2); font-size: 0.9em; line-height: 1.6; margin-bottom: 20px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button { flex: 1; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.9em; border: none; transition: all 0.2s; }
+  .modal-confirm { background: var(--primary); color: white; }
+  .modal-cancel { background: var(--card2); color: var(--text2); border: 1px solid var(--border) !important; }
+  .choice-btns { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; cursor: pointer; text-align: left; transition: all 0.3s; color: var(--text); font-size: 0.9em; }
+  .choice-btn:hover { border-color: var(--primary); background: rgba(124,92,191,0.1); }
+
+  /* ===== ENDING SCREEN ===== */
+  #ending-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+  .ending-emoji { font-size: 5em; margin-bottom: 20px; }
+  .ending-title { font-size: 2em; font-weight: bold; margin-bottom: 15px; }
+  .ending-desc { color: var(--text2); font-size: 1em; max-width: 500px; line-height: 1.8; margin-bottom: 30px; }
+  .ending-stats { background: var(--card); border-radius: 15px; padding: 20px; margin-bottom: 30px; min-width: 300px; }
+  .ending-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9em; }
+  .ending-stat:last-child { border-bottom: none; }
+  .restart-btn { background: linear-gradient(135deg, var(--primary), var(--accent)); border: none; border-radius: 15px; padding: 15px 40px; color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+  .restart-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(124,92,191,0.5); }
+
+  /* ===== STRESS HORROR ===== */
+  .horror-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,0,0,0.15); z-index: 500; pointer-events: none; animation: horror-pulse 0.5s infinite; }
+  @keyframes horror-pulse { 0%,100%{opacity:0.3;} 50%{opacity:0.8;} }
+  .horror-popup { position: fixed; z-index: 600; background: #1a0000; border: 2px solid #ff0000; border-radius: 15px; padding: 20px 30px; color: #ff4444; font-weight: bold; font-size: 0.9em; animation: shake 0.3s infinite; max-width: 250px; }
+  @keyframes shake { 0%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} 100%{transform:translateX(0);} }
+
+  /* ===== DARK ENDING CHAT ===== */
+  #dark-chat-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0000; z-index: 9998; flex-direction: column; }
+  .dark-chat-header { padding: 20px; background: #1a0000; border-bottom: 1px solid #440000; color: #ff4444; font-weight: bold; text-align: center; }
+  .dark-chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .dark-msg { background: #1a0000; border: 1px solid #440000; border-radius: 10px; padding: 10px 15px; color: #cc3333; font-size: 0.85em; }
+  .dark-msg-user { color: #662222; font-size: 0.75em; margin-bottom: 4px; }
+  .dark-continue-btn { background: #440000; border: 1px solid #660000; color: #ff4444; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+  .dark-continue-btn:hover { background: #660000; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+  /* ===== NOTIFICATION ===== */
+  .notification { position: fixed; top: 20px; right: 20px; background: var(--card); border: 1px solid var(--primary); border-radius: 12px; padding: 12px 20px; z-index: 5000; font-size: 0.9em; max-width: 300px; animation: slideIn 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+  @keyframes slideIn { from{transform:translateX(100%);opacity:0;} to{transform:translateX(0);opacity:1;} }
+  .notification.danger { border-color: var(--danger); }
+  .notification.success { border-color: var(--success); }
+  .notification.warning { border-color: var(--warning); }
+
+  .red-bg { background: #1a0000 !important; }
+  .red-text-global * { color: #ff4444 !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== SETUP SCREEN ===== -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-title">🎭 虚拟主播模拟器</div>
+    <div class="setup-subtitle">成为最闪耀的虚拟主播！</div>
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-0"></div>
+      <div class="step-dot" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Step 0: Guild -->
+    <div class="setup-step active" id="step-0">
+      <div class="step-title">选择你的公会</div>
+      <div class="guild-grid">
+        <div class="guild-card" onclick="selectGuild('mog', this)">
+          <div class="guild-emoji">🦁</div>
+          <div class="guild-name">猛哥传媒</div>
+          <div class="guild-tag">Mog.</div>
+          <div class="guild-desc">进取、勇猛，以勇者之名闯荡虚拟界</div>
+        </div>
+        <div class="guild-card" onclick="selectGuild('saki', this)">
+          <div class="guild-emoji">🌸</div>
+          <div class="guild-name">大祥文化</div>
+          <div class="guild-tag">Saki.</div>
+          <div class="guild-desc">温柔优雅，以文化艺术为核心</div>
+        </div>
+        <div class="guild-card" onclick="selectGuild('yrr', this)">
+          <div class="guild-emoji">⚡</div>
+          <div class="guild-name">一仁工作室</div>
+          <div class="guild-tag">Yrr.</div>
+          <div class="guild-desc">个性独立，专注打造独特风格</div>
+        </div>
+        <div class="guild-card" onclick="selectGuild('gw', this)">
+          <div class="guild-emoji">👾</div>
+          <div class="guild-name">怪物管理局</div>
+          <div class="guild-tag">Gw.</div>
+          <div class="guild-desc">怪异神秘，另类中独树一帜</div>
+        </div>
+      </div>
+      <button class="btn" onclick="nextStep()" id="btn-0" disabled>下一步 →</button>
+    </div>
+
+    <!-- Step 1: Name & Emoji -->
+    <div class="setup-step" id="step-1">
+      <div class="step-title">设定你的名字与头像</div>
+      <div class="form-group">
+        <label class="form-label">主播名（将加上公会头衔）</label>
+        <input class="form-input" type="text" id="input-name" placeholder="例：星夜、月见、煌" maxlength="8" oninput="checkStep1()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">选择头像 Emoji（代表你的形象）</label>
+        <div class="tags-grid" id="emoji-grid" style="grid-template-columns:repeat(5,1fr)">
+          <div class="tag-btn" onclick="selectEmoji('🦊',this)">🦊</div>
+          <div class="tag-btn" onclick="selectEmoji('🐱',this)">🐱</div>
+          <div class="tag-btn" onclick="selectEmoji('🐰',this)">🐰</div>
+          <div class="tag-btn" onclick="selectEmoji('🐼',this)">🐼</div>
+          <div class="tag-btn" onclick="selectEmoji('🦋',this)">🦋</div>
+          <div class="tag-btn" onclick="selectEmoji('🌙',this)">🌙</div>
+          <div class="tag-btn" onclick="selectEmoji('⭐',this)">⭐</div>
+          <div class="tag-btn" onclick="selectEmoji('🌸',this)">🌸</div>
+          <div class="tag-btn" onclick="selectEmoji('🔮',this)">🔮</div>
+          <div class="tag-btn" onclick="selectEmoji('🎭',this)">🎭</div>
+          <div class="tag-btn" onclick="selectEmoji('🐉',this)">🐉</div>
+          <div class="tag-btn" onclick="selectEmoji('🦄',this)">🦄</div>
+          <div class="tag-btn" onclick="selectEmoji('🎪',this)">🎪</div>
+          <div class="tag-btn" onclick="selectEmoji('👻',this)">👻</div>
+          <div class="tag-btn" onclick="selectEmoji('🌈',this)">🌈</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" onclick="prevStep()" style="flex:1">← 返回</button>
+        <button class="btn" onclick="nextStep()" id="btn-1" disabled style="flex:2">下一步 →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Gender -->
+    <div class="setup-step" id="step-2">
+      <div class="step-title">选择性别</div>
+      <div class="gender-grid" style="margin-bottom:20px;">
+        <div class="gender-btn" onclick="selectGender('male',this)">♂️ 男性<br><span style="font-size:0.75em;color:#9999bb">女粉更多</span></div>
+        <div class="gender-btn" onclick="selectGender('female',this)">♀️ 女性<br><span style="font-size:0.75em;color:#9999bb">男粉更多</span></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" onclick="prevStep()" style="flex:1">← 返回</button>
+        <button class="btn" onclick="nextStep()" id="btn-2" disabled style="flex:2">下一步 →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Tags -->
+    <div class="setup-step" id="step-3">
+      <div class="step-title">选择身份标签（最多2个）</div>
+      <div class="tags-grid" id="tags-grid" style="margin-bottom:20px;">
+        <div class="tag-btn" onclick="selectTag('游戏主播',this)">🎮 游戏主播</div>
+        <div class="tag-btn" onclick="selectTag('歌见',this)">🎵 歌见</div>
+        <div class="tag-btn" onclick="selectTag('画师',this)">🎨 画师</div>
+        <div class="tag-btn" onclick="selectTag('杂谈达人',this)">💬 杂谈达人</div>
+        <div class="tag-btn" onclick="selectTag('舞见',this)">💃 舞见</div>
+        <div class="tag-btn" onclick="selectTag('料理主播',this)">🍳 料理主播</div>
+        <div class="tag-btn" onclick="selectTag('ASMR',this)">🎧 ASMR</div>
+        <div class="tag-btn" onclick="selectTag('整活鬼才',this)">🃏 整活鬼才</div>
+        <div class="tag-btn" onclick="selectTag('知识分享',this)">📚 知识分享</div>
+        <div class="tag-btn" onclick="selectTag('健身主播',this)">💪 健身主播</div>
+        <div class="tag-btn" onclick="selectTag('剧情演绎',this)">🎬 剧情演绎</div>
+        <div class="tag-btn" onclick="selectTag('Vlog生活',this)">📹 Vlog生活</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" onclick="prevStep()" style="flex:1">← 返回</button>
+        <button class="btn" onclick="startGame()" id="btn-3" disabled style="flex:2">🎉 出道！</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="game-screen">
+  <div class="top-bar">
+    <div class="player-info">
+      <div class="avatar" id="top-avatar">🦊</div>
+      <div>
+        <div class="player-name" id="top-name">主播名</div>
+        <div class="player-guild" id="top-guild">公会</div>
+      </div>
+    </div>
+    <div class="top-stats">
+      <div class="top-stat">
+        <div class="top-stat-val" id="stat-fans">0</div>
+        <div class="top-stat-label">👥 粉丝</div>
+      </div>
+      <div class="top-stat">
+        <div class="top-stat-val" id="stat-salary">¥0</div>
+        <div class="top-stat-label">💰 收入</div>
+      </div>
+      <div class="top-stat">
+        <div class="top-stat-val" id="stat-stress">0</div>
+        <div class="top-stat-label">😰 压力</div>
+      </div>
+    </div>
+    <div class="day-info">
+      <div class="day-num" id="day-display">第 1 天</div>
+      <div class="day-label">出道第几天</div>
+    </div>
+    <button class="end-day-btn" onclick="endDay()">结束今天 →</button>
+  </div>
+
+  <div class="main-content">
+    <div class="tab-sidebar">
+      <div class="tab-icon active" id="tab-chat" onclick="switchTab('chat')" title="聊天">
+        💬<span class="label">聊天</span>
+      </div>
+      <div class="tab-icon" id="tab-live" onclick="switchTab('live')" title="直播">
+        📡<span class="label">直播</span>
+      </div>
+      <div class="tab-icon" id="tab-status" onclick="switchTab('status')" title="状态">
+        📊<span class="label">状态</span>
+      </div>
+      <div class="tab-icon" id="tab-resource" onclick="switchTab('resource')" title="资源">
+        🛍️<span class="label">资源</span>
+      </div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div class="panel active chat-panel" id="panel-chat">
+      <div class="chat-list">
+        <div class="chat-list-title">消息</div>
+        <div class="chat-item active" onclick="switchChat('fans')" id="ci-fans">
+          <div class="chat-item-name">👥 粉丝群</div>
+          <div class="chat-item-preview">欢迎加入！</div>
+        </div>
+        <div class="chat-item" onclick="switchChat('guild')" id="ci-guild">
+          <div class="chat-item-name">🏠 公会大群</div>
+          <div class="chat-item-preview">大家好～</div>
+        </div>
+        <div class="chat-item" onclick="switchChat('staff')" id="ci-staff">
+          <div class="chat-item-name">🎙️ 运营私聊</div>
+          <div class="chat-item-preview">欢迎加入！</div>
+        </div>
+        <div class="chat-item" onclick="switchChat('boss')" id="ci-boss">
+          <div class="chat-item-name">👔 老板私聊</div>
+          <div class="chat-item-preview">期待你的表现</div>
+        </div>
+        <div id="private-chat-items"></div>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header" id="chat-header">💬 粉丝群</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chat-input" placeholder="发送消息..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+          <button class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE PANEL -->
+    <div class="panel live-panel" id="panel-live">
+      <div class="live-header">
+        <h2>📡 直播间</h2>
+        <p id="live-status-msg">每天可以开播一次，选择话题后开始直播！</p>
+      </div>
+      <div class="live-content">
+        <div class="live-main">
+          <div class="live-screen" id="live-screen">
+            <div class="live-screen-content">
+              <div class="live-emoji" id="live-avatar-display">🦊</div>
+              <div class="live-status-text" id="live-screen-status">未开播</div>
+            </div>
+          </div>
+
+          <div id="collab-section" style="display:none;"></div>
+
+          <div class="topic-selection" id="topic-section">
+            <h3>📋 选择今日话题</h3>
+            <div class="topics-grid" id="topics-grid">
+              <div class="topic-btn" onclick="selectTopic('日常聊天',this)">☕ 日常聊天</div>
+              <div class="topic-btn" onclick="selectTopic('游戏直播',this)">🎮 游戏直播</div>
+              <div class="topic-btn" onclick="selectTopic('唱歌',this)">🎵 唱歌</div>
+              <div class="topic-btn" onclick="selectTopic('才艺展示',this)">🎨 才艺展示</div>
+              <div class="topic-btn" onclick="selectTopic('整活',this)">🃏 整活</div>
+              <div class="topic-btn" onclick="selectTopic('粉丝问答',this)">💬 粉丝问答</div>
+              <div class="topic-btn" onclick="selectTopic('开箱',this)">📦 开箱</div>
+              <div class="topic-btn" onclick="selectTopic('周年纪念',this)">🎂 周年纪念</div>
+              <div class="topic-btn" onclick="selectTopic('ASMR',this)">🎧 ASMR</div>
+            </div>
+          </div>
+
+          <div class="live-actions">
+            <button class="live-btn start-btn" id="start-live-btn" onclick="startLive()">🔴 开始直播</button>
+            <button class="live-btn end-stream-btn" id="end-live-btn" onclick="endLive()" style="display:none">⏹ 结束直播</button>
+          </div>
+        </div>
+        <div class="live-danmu" id="danmu-panel">
+          <div class="danmu-header">
+            弹幕聊天
+            <span class="danmu-count" id="bad-danmu-count">0</span>
+          </div>
+          <div class="danmu-list" id="danmu-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS PANEL -->
+    <div class="panel" id="panel-status">
+      <div class="status-panel">
+        <div class="status-card">
+          <h3>🧑‍💼 主播信息</h3>
+          <div class="stat-row">
+            <span class="stat-label">名字</span>
+            <span class="stat-value" id="s-name">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">公会</span>
+            <span class="stat-value" id="s-guild">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">性别</span>
+            <span class="stat-value" id="s-gender">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">身份标签</span>
+            <span class="stat-value">
+              <div class="tags-display" id="s-tags"></div>
+            </span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">出道天数</span>
+            <span class="stat-value" id="s-days">-</span>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <h3>📊 数据概览</h3>
+          <div class="stat-row">
+            <span class="stat-label">粉丝数</span>
+            <span class="stat-value" id="s-fans" style="color:var(--accent)">0</span>
+          </div>
+          <div class="fan-bar"><div class="fan-fill" id="fan-fill" style="width:0%"></div></div>
+          <div class="stat-row" style="margin-top:10px;">
+            <span class="stat-label">总收入</span>
+            <span class="stat-value" style="color:var(--warning)" id="s-salary">¥0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">直播次数</span>
+            <span class="stat-value" id="s-streams">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">今日已直播</span>
+            <span class="stat-value" id="s-streamed-today">否</span>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <h3>😰 压力值</h3>
+          <div class="stat-row">
+            <span class="stat-label">当前压力</span>
+            <span class="stat-value" id="s-stress">0 / 100</span>
+          </div>
+          <div class="stress-bar">
+            <div class="stress-fill" id="stress-fill" style="width:0%;background:var(--success)"></div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn-success" onclick="requestRest()">😴 申请停播休息（向运营申请）</button>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <h3>⚠️ 解约</h3>
+          <p style="color:var(--text2);font-size:0.85em;margin-bottom:15px;line-height:1.6">解约将结束你的公会生涯，达成特殊结局。</p>
+          <button class="btn-danger" onclick="requestTerminate()">📝 申请解约公会</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESOURCE PANEL -->
+    <div class="panel" id="panel-resource">
+      <div class="resource-panel">
+        <h2>🛍️ 资源中心</h2>
+        <p style="color:var(--text2);font-size:0.85em;margin-bottom:5px;">可以自己购买或向老板申请（申请过多会被解雇）</p>
+        <div style="color:var(--warning);font-size:0.85em;margin-bottom:15px;">当前余额：<span id="r-balance">¥0</span></div>
+        <div class="resource-grid" id="resource-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DARK CHAT SCREEN ===== -->
+<div id="dark-chat-screen">
+  <div class="dark-chat-header">⚠️ 系统消息</div>
+  <div class="dark-chat-messages" id="dark-chat-messages"></div>
+  <div class="dark-continue-btn" onclick="showEnding('collapse')">继续 →</div>
+</div>
+
+<!-- ===== ENDING SCREEN ===== -->
+<div id="ending-screen">
+  <div class="ending-emoji" id="ending-emoji">🎭</div>
+  <div class="ending-title" id="ending-title">结局</div>
+  <div class="ending-desc" id="ending-desc">描述</div>
+  <div class="ending-stats" id="ending-stats"></div>
+  <button class="restart-btn" onclick="location.reload()">🔄 重新开始</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ===== GAME STATE =====
+let G = {
+  guild: null, guildTag: '', guildName: '', guildEmoji: '',
+  name: '', emoji: '🦊', gender: null, tags: [],
+  day: 1, fans: 50, salary: 0, stress: 0,
+  streamedToday: false, totalStreams: 0,
+  currentChat: 'fans',
+  messages: { fans: [], guild: [], staff: [], boss: {} },
+  privateChats: {},
+  isLive: false, selectedTopic: null, liveTopic: '',
+  collab: null,
+  badDanmuCount: 0,
+  resourceRequests: 0,
+  privateLinked: null,
+  privateFavorability: {},
+  privateLinkedFans: {},
+  horrorActive: false,
+  horrorTimers: [],
+  dayEndProcessed: false,
+  streamEarningsToday: 0,
+  restApplied: false,
+  knownPrivateFans: [],
+  bossAlerted: false,
+  firedByBoss: false,
+};
+
+const GUILDS = {
+  mog: { tag: 'Mog.', name: '猛哥传媒', emoji: '🦁', color: '#ff6b35' },
+  saki: { tag: 'Saki.', name: '大祥文化', emoji: '🌸', color: '#ff69b4' },
+  yrr: { tag: 'Yrr.', name: '一仁工作室', emoji: '⭐', color: '#7ec8e3' },
+  gw: { tag: 'Gw.', name: '怪物管理局', emoji: '👾', color: '#9d4edd' },
+};
+
+const GUILD_MEMBERS = {
+  mog: ['烈焰Blaze', '狂风Gale', '铁壁Rock'],
+  saki: ['月华Tsuki', '樱雪Sakura', '晨星Dawn'],
+  yrr: ['独行者Solo', '自由风Free', '逆流Rev'],
+  gw: ['暗影Shadow', '混沌Chaos', '幻觉Illusion'],
+};
+
+const FAN_NAMES = ['过激粉', '妈妈粉', '黑粉', '忠诚粉', '数据粉', '脑残粉', '理智粉', '应援粉', '土豪粉', '静默粉', '互动粉', '整活粉', '夸夸粉', '老粉', '新粉'];
+const NORMAL_FAN_MSGS = [
+  '主播今天也超棒！❤️', '主播有没有好好休息啊～', '支持主播！冲冲冲！',
+  '我今天也来了～', '主播加油！我永远支持你！', '分享一下今天喝了好喝的奶茶🧋',
+  '主播什么时候开播啊', '爱你主播！么么哒！', '主播最可爱了！',
+  '今天天气不错，主播要注意身体哦', '一起为主播应援！', '主播的新皮套好好看！'
+];
+const BLACK_FAN_MSGS = [
+  '这个主播真的太菜了吧', '每天就知道骗钱', '粉丝瞎了才会喜欢这种主播',
+  '流量买的吧？', '又来演戏了呢', '这质量也好意思直播', '节目效果好假',
+  '建议解散', '比X都不如', '请问这算人才吗'
+];
+const STAFF_NAME = '小张运营';
+const BOSS_NAME = '老板';
+const RESOURCES = [
+  { id: 'skin', name: '皮套新衣', emoji: '👗', desc: '定制新的虚拟形象，提升形象好感度，增加粉丝。', cost: 3000, effect: () => { G.fans += Math.floor(Math.random()*500+200); showNotif('✨ 新皮套发布！粉丝大增！','success'); } },
+  { id: 'merch', name: '周边定制', emoji: '🎁', desc: '推出官方周边，增加粉丝粘性和收入。', cost: 2000, effect: () => { G.salary += Math.floor(Math.random()*800+400); G.fans += Math.floor(Math.random()*200+100); showNotif('🎁 周边大卖！收入增加！','success'); } },
+  { id: 'song', name: '翻唱版权+MV', emoji: '🎵', desc: '购买歌曲版权并制作MV，大幅提升知名度。', cost: 5000, effect: () => { G.fans += Math.floor(Math.random()*2000+1000); showNotif('🎵 MV发布！人气暴增！','success'); } },
+  { id: 'fanart', name: '约稿', emoji: '🎨', desc: '委托画师创作精美插画，提升视觉吸引力。', cost: 1500, effect: () => { G.fans += Math.floor(Math.random()*300+100); showNotif('🎨 约稿完成！粉丝被迷住了！','success'); } },
+  { id: 'event', name: '线下活动报销', emoji: '🎪', desc: '参加线下活动，接触真实粉丝，增加影响力。', cost: 4000, effect: () => { G.fans += Math.floor(Math.random()*1000+500); G.stress = Math.max(0, G.stress-10); showNotif('🎪 线下活动圆满成功！','success'); } },
+  { id: 'buyfans', name: '💀 买粉丝', emoji: '⚠️', desc: '高风险！有概率被平台检测，扣除大量粉丝。', cost: 1000, effect: () => { buyFans(); }, noApply: true },
+];
+
+// ===== SETUP =====
+let currentStep = 0;
+function selectGuild(id, el) {
+  document.querySelectorAll('.guild-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  G.guild = id;
+  Object.assign(G, { guildTag: GUILDS[id].tag, guildName: GUILDS[id].name, guildEmoji: GUILDS[id].emoji });
+  document.getElementById('btn-0').disabled = false;
+}
+function selectEmoji(em, el) {
+  document.querySelectorAll('#emoji-grid .tag-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  G.emoji = em;
+  checkStep1();
+}
+function checkStep1() {
+  const name = document.getElementById('input-name').value.trim();
+  document.getElementById('btn-1').disabled = !(name && G.emoji);
+}
+function selectGender(g, el) {
+  document.querySelectorAll('.gender-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  G.gender = g;
+  document.getElementById('btn-2').disabled = false;
+}
+function selectTag(tag, el) {
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    G.tags = G.tags.filter(t=>t!==tag);
+  } else {
+    if (G.tags.length >= 2) { showNotif('最多选择2个身份标签','warning'); return; }
+    el.classList.add('selected');
+    G.tags.push(tag);
+  }
+  document.getElementById('btn-3').disabled = G.tags.length === 0;
+}
+function nextStep() {
+  if (currentStep===1) { G.name = document.getElementById('input-name').value.trim(); }
+  document.getElementById(`step-${currentStep}`).classList.remove('active');
+  document.getElementById(`dot-${currentStep}`).classList.remove('active');
+  document.getElementById(`dot-${currentStep}`).classList.add('done');
+  currentStep++;
+  document.getElementById(`step-${currentStep}`).classList.add('active');
+  document.getElementById(`dot-${currentStep}`).classList.add('active');
+}
+function prevStep() {
+  document.getElementById(`step-${currentStep}`).classList.remove('active');
+  document.getElementById(`dot-${currentStep}`).classList.remove('active');
+  currentStep--;
+  document.getElementById(`step-${currentStep}`).classList.add('active');
+  document.getElementById(`dot-${currentStep}`).classList.remove('done');
+  document.getElementById(`dot-${currentStep}`).classList.add('active');
+}
+function startGame() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  initGame();
+}
+
+// ===== INIT GAME =====
+function initGame() {
+  const fullName = `${G.guildTag}${G.name}`;
+  document.getElementById('top-avatar').textContent = G.emoji;
+  document.getElementById('top-name').textContent = fullName;
+  document.getElementById('top-guild').textContent = G.guildName;
+  document.getElementById('live-avatar-display').textContent = G.emoji;
+  document.getElementById('s-name').textContent = fullName;
+  document.getElementById('s-guild').textContent = G.guildName;
+  document.getElementById('s-gender').textContent = G.gender === 'male' ? '♂️ 男性' : '♀️ 女性';
+  const tagsEl = document.getElementById('s-tags');
+  tagsEl.innerHTML = G.tags.map(t=>`<span class="tag-display">${t}</span>`).join('');
+  updateStats();
+  initChats();
+  initResources();
+  scheduleRandomEvents();
+}
+
+function updateStats() {
+  document.getElementById('stat-fans').textContent = formatNum(G.fans);
+  document.getElementById('stat-salary').textContent = '¥' + formatNum(Math.floor(G.salary));
+  document.getElementById('stat-stress').textContent = G.stress;
+  document.getElementById('day-display').textContent = `第 ${G.day} 天`;
+  document.getElementById('s-fans').textContent = formatNum(G.fans);
+  document.getElementById('s-salary').textContent = '¥' + formatNum(Math.floor(G.salary));
+  document.getElementById('s-stress').textContent = `${G.stress} / 100`;
+  document.getElementById('s-days').textContent = `第 ${G.day} 天`;
+  document.getElementById('s-streams').textContent = G.totalStreams;
+  document.getElementById('s-streamed-today').textContent = G.streamedToday ? '✅ 是' : '❌ 否';
+  document.getElementById('r-balance').textContent = '¥' + formatNum(Math.floor(G.salary));
+  const sf = document.getElementById('stress-fill');
+  const pct = Math.min(100, G.stress);
+  sf.style.width = pct + '%';
+  sf.style.background = pct < 40 ? '#44ffaa' : pct < 70 ? '#ffaa44' : '#ff4466';
+  const fanPct = Math.min(100, G.fans / 1000000 * 100);
+  document.getElementById('fan-fill').style.width = fanPct + '%';
+  if (G.stress >= 100 && !G.horrorActive) triggerHorror();
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 10000) return (n/10000).toFixed(1) + 'w';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return n.toString();
+}
+
+// ===== CHAT SYSTEM =====
+let chatContents = {};
+function initChats() {
+  const members = GUILD_MEMBERS[G.guild];
+  const fullName = `${G.guildTag}${G.name}`;
+  chatContents = {
+    fans: [], guild: [], staff: [], boss: []
+  };
+  // Init fan names
+  G.fanList = [];
+  for (let i=0;i<12;i++) {
+    G.fanList.push({ name: FAN_NAMES[i % FAN_NAMES.length], isBlack: FAN_NAMES[i % FAN_NAMES.length]==='黑粉', emoji: ['😊','😃','😇','🥰','😎','🤩','😏','😆','😋','😌','👻','🎭'][i] });
+  }
+  // Welcome messages
+  addMsg('fans','system','系统', `欢迎 ${fullName} 加入粉丝群！`);
+  addMsg('fans','them','妈妈粉', `主播出道了！！！冲冲冲！`, false, '🥰');
+  addMsg('fans','them','忠诚粉', `哇哇哇！！主播你好！我会一直支持你的！`, false, '😊');
+  addMsg('fans','them','黑粉', `又一个不知道哪里来的`, true, '😏');
+  addMsg('guild','system','系统', `欢迎 ${fullName} 加入${G.guildName}！`);
+  members.forEach(m => addMsg('guild','them',m, `新人来啦！欢迎欢迎～`, false, '👋'));
+  addMsg('staff','them', STAFF_NAME, `你好！我是你的专属运营小张，有任何问题都可以找我～`, false, '📋');
+  addMsg('boss','them', BOSS_NAME, `欢迎加入${G.guildName}！期待你的精彩表现。`, false, '👔');
+  switchChat('fans');
+}
+
+function addMsg(chat, type, sender, text, isRed=false, emoji='') {
+  if (!chatContents[chat]) chatContents[chat] = [];
+  chatContents[chat].push({ type, sender, text, isRed, emoji, time: getTime() });
+  if (G.currentChat === chat) renderMessages(chat);
+  updateChatPreview(chat, text);
+}
+
+function addPrivateMsg(fanName, type, text) {
+  if (!chatContents['private_' + fanName]) chatContents['private_' + fanName] = [];
+  chatContents['private_' + fanName].push({ type, sender: type==='mine' ? `${G.guildTag}${G.name}` : fanName, text, isRed: false, emoji:'😊', time: getTime() });
+  if (G.currentChat === 'private_' + fanName) renderMessages('private_' + fanName);
+  updateChatPreview('private_' + fanName, text);
+}
+
+function getTime() {
+  const h = Math.floor(Math.random()*8+14);
+  const m = Math.floor(Math.random()*60);
+  return `${h}:${m<10?'0':''}${m}`;
+}
+
+function updateChatPreview(chat, text) {
+  const el = document.getElementById('ci-' + chat) || document.getElementById('ci-p-' + chat.replace('private_',''));
+  if (el) el.querySelector('.chat-item-preview').textContent = text;
+}
+
+function renderMessages(chat) {
+  const msgs = chatContents[chat] || [];
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = '';
+  msgs.forEach(m => {
+    if (m.type === 'system') {
+      const el = document.createElement('div');
+      el.className = 'system-msg';
+      el.textContent = m.text;
+      container.appendChild(el);
+    } else {
+      const el = document.createElement('div');
+      el.className = 'message' + (m.type==='mine' ? ' mine' : '');
+      el.innerHTML = `
+        <div class="msg-avatar">${m.emoji||'💬'}</div>
+        <div class="msg-content">
+          ${m.type!=='mine'?`<div class="msg-name">${m.sender}</div>`:''}
+          <div class="msg-text ${m.isRed?'red-text':''}">${m.text}</div>
+          <div class="msg-time">${m.time}</div>
+        </div>`;
+      container.appendChild(el);
+    }
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function switchChat(chat) {
+  G.currentChat = chat;
+  document.querySelectorAll('.chat-item').forEach(i=>i.classList.remove('active'));
+  const el = document.getElementById('ci-' + chat) || document.getElementById('ci-p-' + chat.replace('private_',''));
+  if (el) el.classList.add('active');
+  const headers = { fans:'👥 粉丝群', guild:`🏠 ${G.guildName}大群`, staff:`🎙️ ${STAFF_NAME}`, boss:`👔 ${BOSS_NAME}` };
+  const chatKey = chat.startsWith('private_') ? chat.replace('private_','') : null;
+  document.getElementById('chat-header').textContent = chatKey ? `💌 ${chatKey} (私聊)` : (headers[chat] || chat);
+  renderMessages(chat);
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  const chat = G.currentChat;
+  const fullName = `${G.guildTag}${G.name}`;
+  addMsg(chat, 'mine', fullName, text, false, G.emoji);
+  processPlayerMessage(chat, text);
+}
+
+function processPlayerMessage(chat, text) {
+  const lower = text.toLowerCase();
+  const t = lower;
+  const members = GUILD_MEMBERS[G.guild];
+
+  // Greeting detection
+  const isGoodMorning = /早上好|早安|早哦|早|good morning/i.test(text);
+  const isGoodNoon = /中午好|午安|午饭|吃饭了吗/i.test(text);
+  const isGoodEvening = /晚上好|晚安|晚了|good evening|晚好/i.test(text);
+
+  // Love confession
+  const isLove = /我喜欢你|我爱你|喜欢你|爱你/.test(text);
+
+  setTimeout(() => {
+    if (chat === 'fans') {
+      if (isGoodMorning) {
+        ['妈妈粉','忠诚粉','应援粉'].forEach(f => addMsg('fans','them',f, `主播早上好！！！❤️❤️`, false, '🥰'));
+      } else if (isGoodNoon) {
+        addMsg('fans','them','忠诚粉', '主播要记得吃饭哦！', false, '🥰');
+        addMsg('fans','them','妈妈粉', '中午好中午好！', false, '😊');
+      } else if (isGoodEvening) {
+        addMsg('fans','them','忠诚粉', '主播晚上好！今天辛苦了～', false, '🌙');
+        addMsg('fans','them','应援粉', '晚安主播！', false, '⭐');
+      } else if (isLove) {
+        // Private fan accepts
+        const pFan = G.privateLinked;
+        if (pFan) {
+          showEnding('privatelove');
+        } else {
+          addMsg('fans','them','妈妈粉', '主播最可爱了！！我们也爱你！❤️', false, '🥰');
+          addMsg('fans','them','忠诚粉', '主播最好了！爱你！', false, '😍');
+        }
+      } else {
+        if (Math.random() < 0.4) {
+          const fan = G.fanList[Math.floor(Math.random()*G.fanList.length)];
+          if (!fan.isBlack) addMsg('fans','them',fan.name, NORMAL_FAN_MSGS[Math.floor(Math.random()*NORMAL_FAN_MSGS.length)], false, fan.emoji);
+        }
+      }
+    } else if (chat === 'guild') {
+      if (isGoodMorning) {
+        members.forEach(m => addMsg('guild','them',m, `早上好主播！今天也要加油哦！`, false, '🌅'));
+      } else if (isGoodNoon) {
+        addMsg('guild','them', members[0], '中午一起吃饭！', false, '🍱');
+      } else if (isGoodEvening) {
+        members.forEach(m => addMsg('guild','them',m, `晚上好～今天直播顺利吗？`, false, '🌙'));
+      } else if (isLove) {
+        members.forEach(m => addMsg('guild','them',m, `哇哦！！！！${G.guildTag}${G.name}在告白！！！快看快看！😂`, false, '😂'));
+        addMsg('guild','system','系统', `主播群里炸了！`);
+        // Fire
+        setTimeout(() => {
+          addMsg('boss','them', BOSS_NAME, `我看到你在群里发了什么，这不符合职业规范，你被解雇了。`, false, '👔');
+          G.firedByBoss = true;
+          setTimeout(() => showEnding('fired'), 3000);
+        }, 2000);
+      } else {
+        if (Math.random() < 0.5) {
+          const m = members[Math.floor(Math.random()*members.length)];
+          addMsg('guild','them',m, ['哈哈哈！','说得对！','同意！','哈哈哈哈一起一起！','主播你好可爱！'][Math.floor(Math.random()*5)], false, '😄');
+        }
+      }
+    } else if (chat === 'staff') {
+      if (isLove) {
+        addMsg('staff','them', STAFF_NAME, `我觉得你需要冷静一下……我们是职业关系。`, false, '😅');
+      } else if (isGoodMorning) {
+        addMsg('staff','them', STAFF_NAME, `早上好！今天有什么直播计划吗？`, false, '📋');
+      } else if (isGoodNoon) {
+        addMsg('staff','them', STAFF_NAME, `中午好！记得吃饭哦，下午还有工作。`, false, '😊');
+      } else if (isGoodEvening) {
+        addMsg('staff','them', STAFF_NAME, `晚上好！今天辛苦了，早点休息。`, false, '🌙');
+      } else {
+        const replies = ['好的，我记录一下。','明白！有什么需要帮忙的随时说。','收到！','嗯嗯，了解了。','好哒！'];
+        addMsg('staff','them', STAFF_NAME, replies[Math.floor(Math.random()*replies.length)], false, '📋');
+      }
+    } else if (chat === 'boss') {
+      if (isLove) {
+        addMsg('boss','them', BOSS_NAME, `你被解雇了。`, false, '👔');
+        G.firedByBoss = true;
+        setTimeout(() => showEnding('fired'), 2000);
+      } else if (isGoodMorning) {
+        addMsg('boss','them', BOSS_NAME, `早上好。好好工作。`, false, '👔');
+      } else if (isGoodEvening) {
+        addMsg('boss','them', BOSS_NAME, `今天表现如何？数据要保持。`, false, '👔');
+      } else {
+        addMsg('boss','them', BOSS_NAME, ['嗯。','好的。','知道了。','努力工作。'][Math.floor(Math.random()*4)], false, '👔');
+      }
+    } else if (chat.startsWith('private_')) {
+      const fanName = chat.replace('private_','');
+      if (isLove) {
+        addPrivateMsg(fanName, 'them', `啊啊啊！！主播也喜欢我吗！！！！❤️❤️❤️`);
+        showEnding('privatelove');
+      } else if (isGoodMorning) {
+        addPrivateMsg(fanName, 'them', `主播早上好！！今天也要开心哦！`);
+      } else if (isGoodEvening) {
+        addPrivateMsg(fanName, 'them', `主播晚上好！！早点休息！`);
+      } else {
+        const fav = G.privateFavorability[fanName] || 0;
+        if (fav > 50) {
+          addPrivateMsg(fanName, 'them', ['主播你真的好好哦！', '跟主播聊天最开心了！', '我会一直支持你的！', '主播今天有没有想我？'][Math.floor(Math.random()*4)]);
+        } else {
+          addPrivateMsg(fanName, 'them', ['嗯嗯！', '好哒！', '谢谢主播回复！！！', '啊啊啊主播回我了！'][Math.floor(Math.random()*4)]);
+        }
+        G.privateFavorability[fanName] = (G.privateFavorability[fanName] || 0) + 5;
+        // Check if fav crosses 50 for daily donations
+        if ((G.privateFavorability[fanName]) >= 50 && !G.privateLinkedFans[fanName]) {
+          G.privateLinkedFans[fanName] = true;
+          setTimeout(() => {
+            addPrivateMsg(fanName, 'them', `主播……我给你打款了，希望你能记得我 💝`);
+            G.salary += 200;
+            updateStats();
+            showNotif(`💝 ${fanName} 向你打款了 ¥200！`, 'success');
+          }, 2000);
+        }
+      }
+      // Increase private link chance of discovery
+      if (!G.privateLinked) {
+        G.privateLinked = fanName;
+      }
+      if (G.privateFavorability[fanName] > 30 && Math.random() < 0.1) {
+        triggerPrivateDiscovery(fanName);
+      }
+    }
+  }, 800 + Math.random()*1000);
+}
+
+function triggerPrivateDiscovery(fanName) {
+  addMsg('fans','them','过激粉', `大家！！！我发现${G.guildTag}${G.name}在私联粉丝！！`, true, '😡');
+  addMsg('fans','them','黑粉', `我就说吧，这种主播都这样`, true, '😒');
+  addMsg('fans','them','忠诚粉', `什么？！主播不会的吧……`, false, '😰');
+  addMsg('guild','them', GUILD_MEMBERS[G.guild][0], `听说${G.guildTag}${G.name}私联粉丝了？`, false, '👀');
+  addMsg('guild','them', GUILD_MEMBERS[G.guild][1], `……什么情况`, false, '🤔');
+  setTimeout(() => {
+    showModal('老板质问', `老板来质问你关于与粉丝"${fanName}"私联的事。\n你要怎么回答？`, [
+      { text: '真诚道歉：确实有些不妥，我以后会注意职业距离，对不起。', cb: () => {
+        addMsg('boss','them', BOSS_NAME, `好，我接受你的道歉。暂停直播3天反思一下，之后继续加油。`, false, '👔');
+        G.streamedToday = true;
+        G.stress += 15;
+        updateStats();
+        showNotif('😔 老板让你暂停直播反思……', 'warning');
+      }},
+      { text: '无所谓：就是聊聊天，有什么大不了的。', cb: () => {
+        addMsg('boss','them', BOSS_NAME, `你被解雇了。`, false, '👔');
+        G.firedByBoss = true;
+        setTimeout(() => showEnding('fired'), 2000);
+      }}
+    ]);
+  }, 2000);
+}
+
+// ===== LIVE SYSTEM =====
+let danmuInterval = null;
+let selectedTopic = null;
+function selectTopic(topic, el) {
+  document.querySelectorAll('.topic-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTopic = topic;
+}
+
+function startLive() {
+  if (G.streamedToday) { showNotif('今天已经直播过了！', 'warning'); return; }
+  if (!selectedTopic) { showNotif('请先选择直播话题！', 'warning'); return; }
+  G.isLive = true;
+  G.liveTopic = selectedTopic;
+  G.badDanmuCount = 0;
+  G.streamEarningsToday = 0;
+  document.getElementById('live-screen').classList.add('on-air');
+  document.getElementById('live-screen').innerHTML = `
+    <div class="on-air-badge">🔴 ON AIR</div>
+    <div class="live-viewers" id="live-viewers">👁 ${Math.floor(Math.random()*500+100)}</div>
+    <div class="live-screen-content">
+      <div style="font-size:3em">${G.emoji}</div>
+      <div style="color:white;margin-top:8px;font-size:0.9em">正在直播：${selectedTopic}</div>
+    </div>`;
+  document.getElementById('live-status-msg').textContent = `正在直播「${selectedTopic}」中……`;
+  document.getElementById('start-live-btn').style.display = 'none';
+  document.getElementById('end-live-btn').style.display = 'block';
+  document.getElementById('topic-section').style.display = 'none';
+  document.getElementById('danmu-list').innerHTML = '';
+  addSystemDanmu(`直播开始！今日话题：${selectedTopic}`);
+  addSystemDanmu(`${G.guildTag}${G.name} 上线了！`);
+  danmuInterval = setInterval(generateDanmu, 2500);
+}
+
+function endLive() {
+  G.isLive = false;
+  G.streamedToday = true;
+  G.totalStreams++;
+  clearInterval(danmuInterval);
+  const viewers = Math.floor(Math.random()*3000 + G.fans * 0.1);
+  const basePay = Math.floor(viewers * (Math.random()*0.3+0.1) * 2);
+  const finalPay = Math.floor(basePay * (G.collab ? 1.5 : 1));
+  G.salary += Math.floor(finalPay * 0.5);
+  G.fans += Math.floor(viewers * 0.05 + Math.random() * 200);
+  G.stress = Math.max(0, G.stress + (G.badDanmuCount > 3 ? 8 : 3));
+  G.collab = null;
+  document.getElementById('live-screen').classList.remove('on-air');
+  document.getElementById('live-screen').innerHTML = `
+    <div class="live-screen-content">
+      <div class="live-emoji">${G.emoji}</div>
+      <div class="live-status-text" id="live-screen-status">直播结束</div>
+    </div>`;
+  document.getElementById('live-status-msg').textContent = `直播结束！收益 ¥${formatNum(Math.floor(finalPay*0.5))}，涨粉约${formatNum(Math.floor(viewers*0.05))}`;
+  document.getElementById('start-live-btn').style.display = 'block';
+  document.getElementById('end-live-btn').style.display = 'none';
+  document.getElementById('topic-section').style.display = 'block';
+  document.getElementById('topic-section').querySelector('h3').textContent = '📋 选择下次话题';
+  document.getElementById('start-live-btn').disabled = true;
+  document.getElementById('start-live-btn').textContent = '✅ 今日已直播';
+  document.querySelectorAll('.topic-btn').forEach(b=>b.classList.remove('selected'));
+  selectedTopic = null;
+  updateStats();
+  showNotif(`🎉 直播结束！赚了 ¥${formatNum(Math.floor(finalPay*0.5))}，涨了${formatNum(Math.floor(viewers*0.05))}粉！`, 'success');
+  addMsg('fans','them','妈妈粉', `主播今天直播超棒！${selectedTopic||G.liveTopic}好好看！`, false, '🥰');
+}
+
+function generateDanmu() {
+  if (!G.isLive) return;
+  const isBad = Math.random() < 0.2;
+  const badTexts = ['这直播也太无聊了','粉丝买的吧','换个主播','这话题没意思','建议去刷碗'];
+  const goodTexts = ['主播好棒！','666！','来啦来啦！','支持！','冲！','主播好可爱！','哇好厉害！','awsl','主播我爱你！','嗯嗯嗯嗯嗯！','1！','我来了！'];
+  const text = isBad ? badTexts[Math.floor(Math.random()*badTexts.length)] : goodTexts[Math.floor(Math.random()*goodTexts.length)];
+  const user = isBad ? '路人' + Math.floor(Math.random()*999) : (G.fanList[Math.floor(Math.random()*G.fanList.length)]).name + Math.floor(Math.random()*10);
+  addDanmu(user, text, isBad);
+}
+
+function addDanmu(user, text, isBad) {
+  const list = document.getElementById('danmu-list');
+  const el = document.createElement('div');
+  el.className = 'danmu-item' + (isBad ? ' bad' : '');
+  const id = 'danmu_' + Date.now() + Math.random();
+  el.innerHTML = `
+    <span class="danmu-user">${user}：</span>
+    <span class="danmu-text">${text}</span>
+    ${isBad ? `<span class="danmu-del" onclick="deleteDanmu('${id}',this.parentElement)">✕</span>` : ''}`;
+  el.id = id;
+  list.appendChild(el);
+  list.scrollTop = list.scrollHeight;
+  if (isBad) {
+    G.badDanmuCount++;
+    document.getElementById('bad-danmu-count').textContent = G.badDanmuCount;
+    // Stress if not deleted after 5s
+    setTimeout(() => {
+      if (document.getElementById(id)) {
+        G.stress = Math.min(100, G.stress + 3);
+        updateStats();
+      }
+    }, 5000);
+  }
+}
+
+function addSystemDanmu(text) {
+  const list = document.getElementById('danmu-list');
+  const el = document.createElement('div');
+  el.className = 'danmu-item';
+  el.style.textAlign = 'center';
+  el.style.color = 'var(--accent)';
+  el.innerHTML = `<span style="font-size:0.85em">── ${text} ──</span>`;
+  list.appendChild(el);
+}
+
+function deleteDanmu(id, el) {
+  if (el) el.remove();
+  G.badDanmuCount = Math.max(0, G.badDanmuCount - 1);
+  document.getElementById('bad-danmu-count').textContent = G.badDanmuCount;
+}
+
+// ===== RESOURCES =====
+function initResources() {
+  const grid = document.getElementById('resource-grid');
+  grid.innerHTML = '';
+  RESOURCES.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'resource-card';
+    el.innerHTML = `
+      <div class="resource-emoji">${r.emoji}</div>
+      <div class="resource-name">${r.name}</div>
+      <div class="resource-desc">${r.desc}</div>
+      <div class="resource-cost">💰 ¥${formatNum(r.cost)}</div>
+      <div class="resource-btns">
+        <button class="buy-btn" onclick="buyResource('${r.id}')">自费购买</button>
+        ${!r.noApply ? `<button class="apply-btn" onclick="applyResource('${r.id}')">向老板申请</button>` : '<button class="apply-btn" disabled>仅自费</button>'}
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+function getResource(id) { return RESOURCES.find(r=>r.id===id); }
+
+function buyResource(id) {
+  const r = getResource(id);
+  if (!r) return;
+  if (G.salary < r.cost) { showNotif('余额不足！去努力赚钱吧 💸', 'danger'); return; }
+  G.salary -= r.cost;
+  r.effect();
+  updateStats();
+  initResources();
+}
+
+function applyResource(id) {
+  const r = getResource(id);
+  G.resourceRequests++;
+  if (G.resourceRequests >= 5) {
+    showModal('老板来信', '你最近申请资源太频繁了，老板认为你贪得无厌，决定解雇你！', [
+      { text: '好吧……', cb: () => showEnding('fired') }
+    ]);
+    return;
+  }
+  const approved = Math.random() > 0.4;
+  if (approved) {
+    showNotif(`✅ 老板同意了「${r.name}」申请！`, 'success');
+    r.effect();
+    updateStats();
+    addMsg('boss','them', BOSS_NAME, `批准你的「${r.name}」申请，好好利用。`, false, '👔');
+  } else {
+    showNotif(`❌ 老板拒绝了「${r.name}」申请……`, 'danger');
+    addMsg('boss','them', BOSS_NAME, `「${r.name}」申请不通过，预算有限。`, false, '👔');
+  }
+}
+
+function buyFans() {
+  const detected = Math.random() < 0.45;
+  if (detected) {
+    const loss = Math.floor(Math.random()*2000 + 500);
+    G.fans = Math.max(0, G.fans - loss);
+    showNotif(`⚠️ 买粉被检测！损失了 ${formatNum(loss)} 粉丝！`, 'danger');
+    updateStats();
+  } else {
+    G.fans += Math.floor(Math.random()*1500 + 500);
+    showNotif('💫 买粉成功，不知道能持续多久……', 'warning');
+    updateStats();
+  }
+}
+
+// ===== STATUS ACTIONS =====
+function requestRest() {
+  showModal('申请停播休息', '向运营申请停播休息。停播期间压力减少，但粉丝可能会流失一些。', [
+    { text: '确认申请', cb: () => {
+      G.streamedToday = true;
+      document.getElementById('start-live-btn').disabled = true;
+      document.getElementById('start-live-btn').textContent = '😴 今日休息中';
+      G.stress = Math.max(0, G.stress - 20);
+      G.fans = Math.max(0, G.fans - Math.floor(Math.random()*50+20));
+      updateStats();
+      addMsg('staff','them', STAFF_NAME, `已批准你今天休息，好好放松一下！`, false, '😊');
+      showNotif('😴 申请成功！今天好好休息，压力减少20。', 'success');
+    }},
+    { text: '取消', cb: null }
+  ]);
+}
+
+function requestTerminate() {
+  showModal('申请解约', '⚠️ 确认要解约离开公会吗？这将结束你的公会生涯。', [
+    { text: '确认解约', cb: () => showEnding('terminate') },
+    { text: '再想想', cb: null }
+  ]);
+}
+
+// ===== DAY END =====
+function endDay() {
+  if (G.day >= 30) {
+    // Final calculation
+    finalEndDay();
+    return;
+  }
+  // Daily events
+  G.day++;
+  G.streamedToday = false;
+  G.restApplied = false;
+  G.badDanmuCount = 0;
+  document.getElementById('bad-danmu-count').textContent = '0';
+  // Re-enable live
+  document.getElementById('start-live-btn').disabled = false;
+  document.getElementById('start-live-btn').textContent = '🔴 开始直播';
+  document.getElementById('topic-section').querySelector('h3').textContent = '📋 选择今日话题';
+  // Daily fan fluctuation
+  const dailyChange = Math.floor((Math.random()-0.4) * 100);
+  G.fans = Math.max(0, G.fans + dailyChange);
+  // Private fan msg
+  if (Math.random() < 0.3 && G.day > 3) spawnPrivateFan();
+  // Collab invite
+  if (Math.random() < 0.25 && !G.isLive) spawnCollabInvite();
+  // Guild negative
+  if (Math.random() < 0.2) {
+    const m = GUILD_MEMBERS[G.guild][Math.floor(Math.random()*GUILD_MEMBERS[G.guild].length)];
+    addMsg('guild','them',m, ['感觉最近某些人数据挺差的……','哦，新人今天直播了吗？','我今天涨了很多粉丝哦😊','有人还没开播？'][Math.floor(Math.random()*4)], false, '😏');
+  }
+  // Private linked fan daily donation
+  if (G.privateLinked && G.privateLinkedFans[G.privateLinked]) {
+    G.salary += 300;
+    updateStats();
+    addPrivateMsg(G.privateLinked, 'them', `主播，我又打款给你啦～记得好好休息！💝`);
+    showNotif(`💝 ${G.privateLinked} 今日打款 ¥300！`, 'success');
+  }
+  updateStats();
+  showNotif(`🌟 第 ${G.day} 天开始！`, 'success');
+}
+
+function finalEndDay() {
+  // Determine ending based on state
+  if (G.totalStreams === 0) { showEnding('neverLive'); return; }
+  if (G.fans >= 1000000) { showEnding('bigV'); return; }
+  if (G.fans < 100) { showEnding('bottomLine'); return; }
+  if (G.fans < 1000) { showEnding('hobby'); return; }
+  showEnding('normal');
+}
+
+// ===== RANDOM EVENTS =====
+function scheduleRandomEvents() {
+  // Black fan messages in fan chat
+  setInterval(() => {
+    if (Math.random() < 0.25) {
+      addMsg('fans','them','黑粉', BLACK_FAN_MSGS[Math.floor(Math.random()*BLACK_FAN_MSGS.length)], true, '😒');
+    }
+    if (Math.random() < 0.3) {
+      const fan = G.fanList.filter(f=>!f.isBlack)[Math.floor(Math.random()*10)];
+      if (fan) addMsg('fans','them', fan.name, NORMAL_FAN_MSGS[Math.floor(Math.random()*NORMAL_FAN_MSGS.length)], false, fan.emoji);
+    }
+  }, 15000);
+
+  // Guild events
+  setInterval(() => {
+    if (Math.random() < 0.2) {
+      const m = GUILD_MEMBERS[G.guild][Math.floor(Math.random()*GUILD_MEMBERS[G.guild].length)];
+      addMsg('guild','them',m, ['大家今天也要加油！','分享一首好听的歌～🎵','今天直播顺利！','我涨粉了！！','新皮套要出来了！！！'][Math.floor(Math.random()*5)], false, '😊');
+    }
+  }, 20000);
+}
+
+function spawnPrivateFan() {
+  const fanEmojis = ['💌','😍','🥺','💕','✨'];
+  const fanNames = ['神秘粉丝', '忠实应援粉', '超级喜欢主播的粉', '暗恋主播的粉', '每天应援粉'];
+  const name = fanNames[Math.floor(Math.random()*fanNames.length)];
+  if (G.knownPrivateFans.includes(name)) return;
+  G.knownPrivateFans.push(name);
+  if (!chatContents['private_' + name]) chatContents['private_' + name] = [];
+  G.privateFavorability[name] = 0;
+  // Add to sidebar
+  const sidebar = document.getElementById('private-chat-items');
+  const el = document.createElement('div');
+  el.className = 'chat-item';
+  el.id = 'ci-p-' + name;
+  el.onclick = () => switchChat('private_' + name);
+  el.innerHTML = `<div class="chat-item-name">💌 ${name}</div><div class="chat-item-preview" id="prev-${name}">私信你了！</div>`;
+  sidebar.appendChild(el);
+  addPrivateMsg(name, 'them', ['主播，可以跟你说话吗？💕', '主播！我好喜欢你的直播！可以聊天吗？', '嗨～主播，我是你的粉丝……偷偷私信你……'][Math.floor(Math.random()*3)]);
+  showNotif(`💌 有粉丝发来私聊！`, 'warning');
+}
+
+function spawnCollabInvite() {
+  const members = GUILD_MEMBERS[G.guild];
+  const inviter = members[Math.floor(Math.random()*members.length)];
+  const collab_section = document.getElementById('collab-section');
+  collab_section.style.display = 'block';
+  collab_section.innerHTML = `
+    <div class="collab-notice">
+      <h4>🎉 联动邀请</h4>
+      <p>${inviter} 邀请你进行联动直播！接受后本次直播收益+50%。</p>
+      <div class="collab-btns">
+        <button class="accept-btn" onclick="acceptCollab('${inviter}')">✅ 接受联动</button>
+        <button class="decline-btn" onclick="declineCollab()">❌ 拒绝</button>
+      </div>
+    </div>`;
+}
+
+function acceptCollab(name) {
+  G.collab = name;
+  document.getElementById('collab-section').style.display = 'none';
+  addMsg('guild','them',name, `太棒了！今天我们一起联动！`, false, '🎉');
+  showNotif(`🎉 接受了 ${name} 的联动邀请！本次直播收益+50%！`, 'success');
+}
+
+function declineCollab() {
+  document.getElementById('collab-section').style.display = 'none';
+  showNotif('拒绝了联动邀请。', 'warning');
+}
+
+// ===== HORROR / STRESS =====
+function triggerHorror() {
+  G.horrorActive = true;
+  document.body.style.background = '#1a0000';
+  const overlay = document.createElement('div');
+  overlay.className = 'horror-overlay';
+  overlay.id = 'horror-overlay';
+  document.body.appendChild(overlay);
+  const msgs = ['你撑得住吗……', '压力太大了……', '你还好吗？', '还要继续下去吗……', '快撑不住了……'];
+  let count = 0;
+  const spawnPopup = () => {
+    if (count > 8) {
+      // transition to dark chat
+      clearInterval(G.horrorInterval);
+      document.querySelectorAll('.horror-popup').forEach(p=>p.remove());
+      document.body.style.background = '';
+      overlay.remove();
+      startDarkChat();
+      return;
+    }
+    const popup = document.createElement('div');
+    popup.className = 'horror-popup';
+    popup.style.top = Math.random()*80 + '%';
+    popup.style.left = Math.random()*70 + '%';
+    popup.textContent = msgs[count % msgs.length];
+    document.body.appendChild(popup);
+    count++;
+    setTimeout(() => popup.remove(), 2000);
+  };
+  G.horrorInterval = setInterval(spawnPopup, 1200);
+}
+
+function startDarkChat() {
+  document.getElementById('game-screen').style.display = 'none';
+  const dc = document.getElementById('dark-chat-screen');
+  dc.style.display = 'flex';
+  const darkMsgs = [
+    { user: '路人甲', text: '你听说了吗……有个虚拟主播好像撑不住了' },
+    { user: '路人乙', text: '哪个？那个最近一直在高强度直播的？' },
+    { user: '路人甲', text: '对……听说压力特别大，黑粉又多' },
+    { user: '路人丙', text: '……好可惜，我还挺喜欢看ta直播的' },
+    { user: '过激粉', text: '活该，谁让ta这么菜' },
+    { user: '妈妈粉', text: '不要这么说！主播很努力的！！' },
+    { user: '路人乙', text: '虚拟主播这行太难了……' },
+    { user: '忠诚粉', text: '……我很后悔，当时应该多关心ta的' },
+  ];
+  const container = document.getElementById('dark-chat-messages');
+  container.innerHTML = '';
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= darkMsgs.length) { clearInterval(interval); return; }
+    const m = darkMsgs[i];
+    const el = document.createElement('div');
+    el.className = 'dark-msg';
+    el.innerHTML = `<div class="dark-msg-user">${m.user}</div>${m.text}`;
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    i++;
+  }, 2000);
+}
+
+// ===== ENDINGS =====
+function showEnding(type) {
+  document.getElementById('dark-chat-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('modal-overlay').style.display = 'none';
+  const es = document.getElementById('ending-screen');
+  es.style.display = 'flex';
+  const endings = {
+    bigV: { emoji:'🏆', title:'百万大V！', desc:'经过30天的努力，你突破了百万粉丝大关！恭喜你成为了顶流虚拟主播！你的名字响彻整个虚拟圈。', color:'#ffaa44' },
+    hobby: { emoji:'🎭', title:'兴趣而已', desc:'30天过去了，你的粉丝没能突破1000。但没关系，直播本来就是你的爱好，你依然享受着这份快乐。', color:'var(--primary-light)' },
+    bottomLine: { emoji:'😔', title:'永远底边', desc:'30天结束了，粉丝还是寥寥无几……但人生很长，这只是一段经历。', color:'var(--text2)' },
+    neverLive: { emoji:'🤔', title:'你到底是不是虚拟主播？', desc:'出道30天，一次播都没开过……你的粉丝群里的粉丝们依然在等待，而你……', color:'#ff9944' },
+    collapse: { emoji:'💔', title:'堕落结局', desc:'压力将你淹没，在众人的议论声中，你悄无声息地消失了。那些曾经爱过你的人，在聊天记录里留下了无尽的遗憾。', color:'#ff4466' },
+    terminate: { emoji:'📝', title:'自由之翼', desc:'你选择离开公会，暂别直播生涯。也许某天，你会以独立的姿态再次出现在大家面前。', color:'var(--success)' },
+    fired: { emoji:'🚪', title:'被解雇了', desc:'由于不当行为，你被老板解雇。公会的大门对你关闭了，但新的旅程或许在等着你。', color:'var(--warning)' },
+    privatelove: { emoji:'💕', title:'私联成功', desc:`你和你的粉丝突破了主播与粉丝的界限，走向了一段新的关系。这是禁忌，也是缘分。`, color:'var(--accent)' },
+    normal: { emoji:'⭐', title:'稳步成长', desc:'30天结束，你已成为一名有口皆碑的虚拟主播，粉丝稳定增长，前途无量！', color:'var(--primary-light)' },
+  };
+  const e = endings[type] || endings.normal;
+  document.getElementById('ending-emoji').textContent = e.emoji;
+  document.getElementById('ending-title').textContent = e.title;
+  document.getElementById('ending-title').style.color = e.color;
+  document.getElementById('ending-desc').textContent = e.desc;
+  document.getElementById('ending-stats').innerHTML = `
+    <div class="ending-stat"><span>主播名</span><span>${G.guildTag}${G.name}</span></div>
+    <div class="ending-stat"><span>公会</span><span>${G.guildName}</span></div>
+    <div class="ending-stat"><span>最终粉丝数</span><span>${formatNum(G.fans)}</span></div>
+    <div class="ending-stat"><span>总收入</span><span>¥${formatNum(Math.floor(G.salary))}</span></div>
+    <div class="ending-stat"><span>直播次数</span><span>${G.totalStreams}</span></div>
+    <div class="ending-stat"><span>坚持天数</span><span>${G.day} 天</span></div>`;
+}
+
+// ===== MODAL =====
+function showModal(title, desc, choices) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `<h3>${title}</h3><p>${desc.replace(/\n/g,'<br>')}</p><div class="choice-btns" id="modal-choice-btns"></div>`;
+  const btns = document.getElementById('modal-choice-btns');
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c.text;
+    btn.onclick = () => { overlay.style.display = 'none'; if (c.cb) c.cb(); };
+    btns.appendChild(btn);
+  });
+  overlay.style.display = 'flex';
+}
+
+// ===== NOTIFICATIONS =====
+let notifTimer = null;
+function showNotif(text, type='') {
+  const existing = document.querySelector('.notification');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = `notification ${type}`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.remove(), 3500);
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-icon').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>
