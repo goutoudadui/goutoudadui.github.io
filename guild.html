@@ -1,0 +1,1532 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟主播公会老板模拟器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Microsoft YaHei', sans-serif; background: #0d0d1a; color: #e0e0ff; min-height: 100vh; }
+
+  /* ===== 标题页 ===== */
+  #title-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0d0d1a 100%);
+  }
+  #title-screen h1 {
+    font-size: 2.8em; color: #c084fc; text-shadow: 0 0 30px #a855f7, 0 0 60px #7c3aed;
+    margin-bottom: 16px; text-align: center; line-height: 1.3;
+  }
+  #title-screen p { color: #a78bfa; margin-bottom: 48px; font-size: 1.1em; }
+  .btn-start {
+    padding: 16px 56px; font-size: 1.2em; background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none; border-radius: 50px; color: white; cursor: pointer;
+    box-shadow: 0 0 24px #7c3aed88; transition: all .3s;
+  }
+  .btn-start:hover { transform: scale(1.07); box-shadow: 0 0 40px #a855f7; }
+
+  /* ===== 设置页 ===== */
+  #setup-screen {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, #0d0d1a, #1a0a2e);
+  }
+  .setup-card {
+    background: #1a1a2e; border: 1px solid #4c1d95; border-radius: 20px;
+    padding: 48px; width: 460px; box-shadow: 0 0 40px #7c3aed44;
+  }
+  .setup-card h2 { color: #c084fc; margin-bottom: 32px; font-size: 1.6em; text-align: center; }
+  .setup-card label { display: block; color: #a78bfa; margin-bottom: 8px; font-size: .95em; }
+  .setup-card input {
+    width: 100%; padding: 12px 16px; background: #0d0d1a; border: 1px solid #4c1d95;
+    border-radius: 10px; color: #e0e0ff; font-size: 1em; margin-bottom: 24px; outline: none;
+    transition: border-color .2s;
+  }
+  .setup-card input:focus { border-color: #a855f7; }
+  .btn-confirm {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none; border-radius: 12px; color: white; font-size: 1.1em; cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-confirm:hover { opacity: .85; }
+
+  /* ===== 主游戏界面 ===== */
+  #game-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+  /* 顶部状态栏 */
+  #top-bar {
+    background: #12122a; border-bottom: 1px solid #2d1b69; padding: 10px 24px;
+    display: flex; align-items: center; gap: 24px; position: sticky; top: 0; z-index: 100;
+  }
+  #top-bar .guild-name { font-size: 1.1em; color: #c084fc; font-weight: bold; }
+  #top-bar .balance { color: #34d399; font-size: 1em; }
+  #top-bar .day-info { color: #a78bfa; font-size: .9em; margin-left: auto; }
+
+  /* 主导航栏 */
+  #main-nav {
+    background: #12122a; border-bottom: 1px solid #2d1b69;
+    display: flex; gap: 0;
+  }
+  .nav-btn {
+    padding: 12px 28px; background: transparent; border: none; color: #a78bfa;
+    cursor: pointer; font-size: .97em; border-bottom: 3px solid transparent;
+    transition: all .2s; position: relative;
+  }
+  .nav-btn.active { color: #c084fc; border-bottom-color: #a855f7; background: #1a1040; }
+  .nav-btn:hover:not(.active) { background: #1a1040aa; color: #d8b4fe; }
+  .nav-badge {
+    position: absolute; top: 6px; right: 10px; background: #ef4444;
+    border-radius: 50%; width: 8px; height: 8px;
+  }
+
+  /* 内容区域 */
+  #content { flex: 1; padding: 0; display: flex; }
+  .tab-panel { display: none; flex: 1; }
+  .tab-panel.active { display: flex; }
+
+  /* ===== Tab1: 招聘 ===== */
+  #tab-recruit { flex-direction: column; padding: 24px; gap: 16px; overflow-y: auto; }
+  #tab-recruit h2 { color: #c084fc; font-size: 1.3em; margin-bottom: 8px; }
+  .recruit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .recruit-card {
+    background: #1a1a2e; border: 1px solid #2d1b69; border-radius: 14px;
+    padding: 20px; transition: all .2s; position: relative; overflow: hidden;
+  }
+  .recruit-card:hover { border-color: #7c3aed; box-shadow: 0 0 20px #7c3aed33; }
+  .recruit-card .vup-avatar {
+    width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #ec4899);
+    display: flex; align-items: center; justify-content: center; font-size: 1.6em;
+    margin-bottom: 12px; flex-shrink: 0;
+  }
+  .recruit-card .vup-name { font-size: 1.05em; color: #e0e0ff; font-weight: bold; margin-bottom: 6px; }
+  .recruit-card .vup-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .vup-tag {
+    padding: 3px 10px; border-radius: 20px; font-size: .78em;
+    background: #2d1b69; color: #c084fc; border: 1px solid #4c1d95;
+  }
+  .recruit-card .vup-desc { font-size: .85em; color: #8b8bcc; margin-bottom: 14px; line-height: 1.5; }
+  .recruit-card .cost { color: #fbbf24; font-size: .9em; margin-bottom: 12px; }
+  .btn-recruit {
+    width: 100%; padding: 10px; background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none; border-radius: 8px; color: white; cursor: pointer;
+    font-size: .95em; transition: opacity .2s;
+  }
+  .btn-recruit:hover { opacity: .8; }
+  .btn-recruit:disabled { background: #2d2d4e; color: #555; cursor: not-allowed; }
+
+  /* ===== Tab2: 消息 ===== */
+  #tab-messages { flex-direction: row; }
+  #msg-sidebar {
+    width: 260px; background: #12122a; border-right: 1px solid #2d1b69;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .msg-section-title {
+    padding: 12px 16px; font-size: .8em; color: #6b6b9a; text-transform: uppercase;
+    letter-spacing: .08em; border-bottom: 1px solid #1e1e3a; background: #0d0d1a;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .msg-item {
+    padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #1a1a2e;
+    transition: background .15s; position: relative; display: flex; align-items: center; gap: 10px;
+  }
+  .msg-item:hover { background: #1a1040; }
+  .msg-item.active { background: #2d1b69; }
+  .msg-item-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1em;
+  }
+  .msg-item-info { flex: 1; min-width: 0; }
+  .msg-item-name { font-size: .92em; color: #e0e0ff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg-item-preview { font-size: .78em; color: #6b6b9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .msg-unread-dot {
+    width: 8px; height: 8px; background: #ef4444; border-radius: 50%; flex-shrink: 0;
+  }
+
+  #msg-main { flex: 1; display: flex; flex-direction: column; }
+  #msg-header {
+    padding: 14px 20px; background: #12122a; border-bottom: 1px solid #2d1b69;
+    display: flex; align-items: center; gap: 12px;
+  }
+  #msg-header .chat-avatar {
+    width: 38px; height: 38px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 1.1em;
+  }
+  #msg-header .chat-name { font-size: 1em; color: #e0e0ff; font-weight: bold; }
+  #msg-header .chat-sub { font-size: .8em; color: #6b6b9a; }
+  #msg-header .affinity-bar {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+  }
+  #msg-header .affinity-label { font-size: .8em; color: #a78bfa; }
+  .affinity-track {
+    width: 80px; height: 6px; background: #2d1b69; border-radius: 3px; overflow: hidden;
+  }
+  .affinity-fill { height: 100%; background: linear-gradient(90deg, #a855f7, #ec4899); border-radius: 3px; transition: width .4s; }
+
+  #chat-messages {
+    flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    background: #0d0d1a;
+  }
+  .chat-bubble { max-width: 70%; display: flex; flex-direction: column; gap: 3px; }
+  .chat-bubble.me { align-self: flex-end; align-items: flex-end; }
+  .chat-bubble.other { align-self: flex-start; align-items: flex-start; }
+  .bubble-sender { font-size: .75em; color: #6b6b9a; }
+  .bubble-text {
+    padding: 10px 14px; border-radius: 14px; font-size: .93em; line-height: 1.5;
+    max-width: 100%; word-break: break-all;
+  }
+  .chat-bubble.me .bubble-text { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border-bottom-right-radius: 4px; }
+  .chat-bubble.other .bubble-text { background: #1e1e3a; color: #e0e0ff; border-bottom-left-radius: 4px; }
+
+  .resource-request-bubble {
+    background: #1e1e3a; border: 1px solid #4c1d95; border-radius: 14px;
+    padding: 14px; max-width: 340px; align-self: flex-start;
+  }
+  .resource-request-bubble .req-title { color: #c084fc; font-size: .9em; font-weight: bold; margin-bottom: 6px; }
+  .resource-request-bubble .req-amount { color: #fbbf24; font-size: 1em; margin-bottom: 12px; }
+  .resource-request-bubble .req-btns { display: flex; gap: 8px; }
+  .btn-agree { padding: 7px 18px; background: #059669; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: .88em; }
+  .btn-refuse { padding: 7px 18px; background: #dc2626; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: .88em; }
+
+  #chat-input-area {
+    padding: 14px 20px; background: #12122a; border-top: 1px solid #2d1b69;
+    display: flex; gap: 10px;
+  }
+  #chat-input-area.disabled { opacity: .5; pointer-events: none; }
+  #chat-text {
+    flex: 1; padding: 10px 14px; background: #0d0d1a; border: 1px solid #2d1b69;
+    border-radius: 20px; color: #e0e0ff; font-size: .95em; outline: none; resize: none; height: 42px;
+    transition: border-color .2s;
+  }
+  #chat-text:focus { border-color: #a855f7; }
+  .btn-send {
+    padding: 10px 20px; background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none; border-radius: 20px; color: white; cursor: pointer; font-size: .95em;
+  }
+
+  /* 粉丝群聊天 - group style */
+  .fan-bubble { display: flex; gap: 8px; align-items: flex-start; }
+  .fan-avatar {
+    width: 30px; height: 30px; border-radius: 50%; background: #2d1b69;
+    display: flex; align-items: center; justify-content: center; font-size: .75em;
+    flex-shrink: 0; color: #a78bfa;
+  }
+  .fan-content { flex: 1; }
+  .fan-name { font-size: .75em; color: #6b6b9a; margin-bottom: 2px; }
+  .fan-text {
+    display: inline-block; padding: 8px 12px; background: #1e1e3a;
+    border-radius: 12px; border-bottom-left-radius: 4px;
+    font-size: .88em; color: #e0e0ff; word-break: break-all;
+  }
+  .fan-text.angry { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+  .me-fan-bubble { display: flex; justify-content: flex-end; }
+  .me-fan-text {
+    padding: 8px 12px; background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border-radius: 12px; border-bottom-right-radius: 4px;
+    font-size: .88em; color: white; max-width: 70%; word-break: break-all;
+  }
+
+  /* ===== Tab3: 收入 ===== */
+  #tab-income { flex-direction: column; padding: 24px; overflow-y: auto; }
+  #tab-income h2 { color: #c084fc; margin-bottom: 20px; }
+  .income-list { display: flex; flex-direction: column; gap: 12px; }
+  .income-card {
+    background: #1a1a2e; border: 1px solid #2d1b69; border-radius: 12px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 16px;
+  }
+  .income-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3em;
+  }
+  .income-info { flex: 1; }
+  .income-name { font-size: 1em; color: #e0e0ff; font-weight: bold; }
+  .income-sessions { font-size: .82em; color: #6b6b9a; margin-top: 3px; }
+  .income-amount { color: #34d399; font-size: 1.1em; font-weight: bold; }
+  .income-live-badge {
+    padding: 3px 10px; background: #dc2626; border-radius: 20px;
+    font-size: .75em; color: white; animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .income-total {
+    background: #1a1a2e; border: 1px solid #4c1d95; border-radius: 12px;
+    padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+  }
+  .income-total .label { color: #a78bfa; }
+  .income-total .value { color: #34d399; font-size: 1.4em; font-weight: bold; }
+
+  /* ===== Tab4: 状态栏 ===== */
+  #tab-status { flex-direction: column; padding: 24px; overflow-y: auto; }
+  #tab-status h2 { color: #c084fc; margin-bottom: 20px; }
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .status-card {
+    background: #1a1a2e; border: 1px solid #2d1b69; border-radius: 14px;
+    padding: 20px; transition: border-color .2s;
+  }
+  .status-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .status-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.4em;
+  }
+  .status-name { font-size: 1em; color: #e0e0ff; font-weight: bold; }
+  .status-tag { font-size: .8em; color: #6b6b9a; margin-top: 2px; }
+  .status-badge {
+    margin-left: auto; padding: 4px 12px; border-radius: 20px; font-size: .8em; font-weight: bold;
+  }
+  .status-badge.live { background: #dc2626; color: white; }
+  .status-badge.idle { background: #1e3a2e; color: #34d399; }
+  .status-badge.break { background: #2d2d00; color: #fbbf24; }
+  .status-badge.crisis { background: #450a0a; color: #fca5a5; animation: pulse 1.5s infinite; }
+  .affinity-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .affinity-row span { font-size: .82em; color: #a78bfa; width: 60px; }
+  .affinity-track-full { flex: 1; height: 8px; background: #2d1b69; border-radius: 4px; overflow: hidden; }
+  .affinity-fill-full { height: 100%; background: linear-gradient(90deg, #a855f7, #ec4899); border-radius: 4px; transition: width .4s; }
+  .affinity-value { font-size: .82em; color: #c084fc; width: 30px; text-align: right; }
+  .btn-fire {
+    width: 100%; padding: 9px; background: #1a0505; border: 1px solid #7f1d1d;
+    border-radius: 8px; color: #f87171; cursor: pointer; font-size: .88em;
+    transition: all .2s;
+  }
+  .btn-fire:hover { background: #450a0a; border-color: #dc2626; }
+
+  /* ===== 弹窗系统 ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: #000000bb; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-box {
+    background: #1a1a2e; border: 1px solid #4c1d95; border-radius: 20px;
+    padding: 36px; max-width: 500px; width: 90%; box-shadow: 0 0 60px #7c3aed44;
+  }
+  .modal-box h3 { color: #c084fc; font-size: 1.3em; margin-bottom: 12px; }
+  .modal-box p { color: #a78bfa; font-size: .95em; line-height: 1.6; margin-bottom: 24px; }
+  .modal-btns { display: flex; gap: 12px; justify-content: flex-end; }
+  .btn-modal-yes { padding: 10px 24px; background: linear-gradient(135deg, #7c3aed, #a855f7); border: none; border-radius: 10px; color: white; cursor: pointer; font-size: .95em; }
+  .btn-modal-no { padding: 10px 24px; background: #1e1e3a; border: 1px solid #4c1d95; border-radius: 10px; color: #a78bfa; cursor: pointer; font-size: .95em; }
+
+  /* 私联事件 - 选择页面 */
+  .crisis-choice { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+  .choice-btn {
+    padding: 16px 20px; background: #12122a; border: 1px solid #2d1b69;
+    border-radius: 12px; color: #e0e0ff; cursor: pointer; text-align: left;
+    font-size: .95em; line-height: 1.5; transition: all .2s;
+  }
+  .choice-btn:hover { border-color: #7c3aed; background: #1a1040; }
+  .choice-label { font-size: .75em; color: #a78bfa; margin-bottom: 6px; display: block; }
+  .crisis-vup-reply {
+    background: #0d0d1a; border: 1px solid #2d1b69; border-radius: 12px;
+    padding: 14px; font-size: .9em; color: #d8b4fe; line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* 结局页 */
+  #ending-screen {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, #0d0d1a, #1a0a2e);
+    text-align: center; padding: 40px;
+  }
+  #ending-screen h1 { font-size: 2.2em; color: #c084fc; margin-bottom: 16px; text-shadow: 0 0 30px #a855f7; }
+  #ending-screen p { color: #a78bfa; font-size: 1.1em; line-height: 1.8; max-width: 500px; margin-bottom: 36px; }
+  .btn-restart { padding: 14px 48px; background: linear-gradient(135deg, #7c3aed, #a855f7); border: none; border-radius: 50px; color: white; font-size: 1.1em; cursor: pointer; }
+
+  /* 通知Toast */
+  #toast-container { position: fixed; top: 70px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: #1a1a2e; border: 1px solid #4c1d95; border-radius: 12px;
+    padding: 12px 18px; font-size: .9em; color: #e0e0ff; box-shadow: 0 4px 20px #00000066;
+    animation: slideIn .3s ease; max-width: 300px;
+  }
+  .toast.warning { border-color: #dc2626; color: #fca5a5; background: #1a0505; }
+  .toast.success { border-color: #059669; color: #6ee7b7; background: #051a10; }
+  @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #0d0d1a; }
+  ::-webkit-scrollbar-thumb { background: #2d1b69; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #4c1d95; }
+</style>
+</head>
+<body>
+
+<!-- ===== 标题页 ===== -->
+<div id="title-screen">
+  <h1>✦ 虚拟主播<br>公会老板模拟器 ✦</h1>
+  <p>经营你的专属公会，与中之人共同成长</p>
+  <button class="btn-start" onclick="showSetup()">✦ 开始经营 ✦</button>
+</div>
+
+<!-- ===== 设置页 ===== -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h2>✦ 创建你的公会 ✦</h2>
+    <label>公会名称</label>
+    <input type="text" id="input-guild-name" placeholder="例如：星穹制作所" maxlength="20">
+    <label>公会前缀（显示在主播名前）</label>
+    <input type="text" id="input-guild-prefix" placeholder="例如：HX. / ST." maxlength="6">
+    <button class="btn-confirm" onclick="startGame()">✦ 确认开始 ✦</button>
+  </div>
+</div>
+
+<!-- ===== 主游戏界面 ===== -->
+<div id="game-screen">
+  <div id="top-bar">
+    <span class="guild-name" id="display-guild"></span>
+    <span class="balance">💰 余额：<span id="display-balance">0</span> 元</span>
+    <span class="day-info">📅 第 <span id="display-day">1</span> 天</span>
+  </div>
+  <div id="main-nav">
+    <button class="nav-btn active" onclick="switchTab('recruit')" id="nav-recruit">📋 招聘</button>
+    <button class="nav-btn" onclick="switchTab('messages')" id="nav-messages">💬 消息 <span class="nav-badge" id="badge-msg" style="display:none"></span></button>
+    <button class="nav-btn" onclick="switchTab('income')" id="nav-income">💹 收入</button>
+    <button class="nav-btn" onclick="switchTab('status')" id="nav-status">📊 状态</button>
+  </div>
+  <div id="content">
+    <!-- Tab1 招聘 -->
+    <div class="tab-panel active" id="tab-recruit">
+      <h2>✦ 招聘中之人</h2>
+      <div style="color:#6b6b9a;font-size:.88em;margin-bottom:16px;">每招募一位中之人，需支付 <span style="color:#fbbf24">¥3000</span> 用于皮套定制及相关费用</div>
+      <div class="recruit-grid" id="recruit-grid"></div>
+    </div>
+
+    <!-- Tab2 消息 -->
+    <div class="tab-panel" id="tab-messages">
+      <div id="msg-sidebar">
+        <div class="msg-section-title">💬 私聊</div>
+        <div id="dm-list"></div>
+        <div class="msg-section-title">👥 主播大群</div>
+        <div class="msg-item" onclick="openChat('guild-group')" id="sidebar-guild-group">
+          <div class="msg-item-avatar" style="background:#2d1b69;font-size:1.1em;">🏰</div>
+          <div class="msg-item-info">
+            <div class="msg-item-name" id="guild-group-name">公会大群</div>
+            <div class="msg-item-preview" id="guild-group-preview">暂无消息</div>
+          </div>
+          <div class="msg-unread-dot" id="dot-guild-group" style="display:none"></div>
+        </div>
+        <div class="msg-section-title">🎀 粉丝群</div>
+        <div id="fan-list"></div>
+      </div>
+      <div id="msg-main">
+        <div id="msg-header">
+          <div style="color:#6b6b9a;padding:20px;">← 选择一个会话</div>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <textarea id="chat-text" placeholder="输入消息…" onkeydown="handleChatKey(event)"></textarea>
+          <button class="btn-send" onclick="sendChatMsg()">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab3 收入 -->
+    <div class="tab-panel" id="tab-income">
+      <h2>💹 直播收入统计</h2>
+      <div class="income-total">
+        <span class="label">今日总收入</span>
+        <span class="value">+¥<span id="today-income">0</span></span>
+      </div>
+      <div class="income-total" style="border-color:#2d1b69;">
+        <span class="label">累计总收入</span>
+        <span class="value">+¥<span id="total-income">0</span></span>
+      </div>
+      <div class="income-list" id="income-list"></div>
+    </div>
+
+    <!-- Tab4 状态 -->
+    <div class="tab-panel" id="tab-status">
+      <h2>📊 主播状态一览</h2>
+      <div class="status-grid" id="status-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 结局页 -->
+<div id="ending-screen">
+  <h1 id="ending-title">✦ 结局 ✦</h1>
+  <p id="ending-text"></p>
+  <button class="btn-restart" onclick="location.reload()">再次经营</button>
+</div>
+
+<!-- 弹窗区域 -->
+<div id="modal-container"></div>
+<div id="toast-container"></div>
+
+<script>
+// =============================================
+//  游戏核心数据
+// =============================================
+const G = {
+  guildName: '',
+  prefix: '',
+  balance: 50000,
+  day: 1,
+  vups: [],        // 已招募的主播
+  fireAll: false,
+  hiredCount: 0,
+  totalIncome: 0,
+  todayIncome: 0,
+  activeChatId: null,
+  chatHistories: {}, // chatId -> [{role,text,type?,data?}]
+  unreadDots: {},    // chatId -> bool
+  dayTimer: null,
+};
+
+// 候选主播池 (名字/标签/描述/emoji/bgColor)
+const VUP_POOL = [
+  {id:'v1',name:'夜星ナイト',tags:['游戏','FPS','深夜'],desc:'深夜活动的游戏主播，枪法极准，粉丝称她为"夜枪神"。',emoji:'🌙',bg:'linear-gradient(135deg,#312e81,#4c1d95)'},
+  {id:'v2',name:'桃音Momone',tags:['唱歌','可爱','萌系'],desc:'天使嗓音歌姬，擅长翻唱J-POP，单曲经常上热榜。',emoji:'🍑',bg:'linear-gradient(135deg,#831843,#9d174d)'},
+  {id:'v3',name:'雷欧Leo',tags:['VCT','电竞','体育'],desc:'前半职业选手，VALORANT大神，竞技状态极佳。',emoji:'⚡',bg:'linear-gradient(135deg,#713f12,#92400e)'},
+  {id:'v4',name:'琴叶Kotone',tags:['钢琴','古典','雅致'],desc:'主修音乐学院的才女，直播弹奏古典与现代曲目。',emoji:'🎹',bg:'linear-gradient(135deg,#064e3b,#065f46)'},
+  {id:'v5',name:'小白Shiro',tags:['vlog','日常','治愈'],desc:'清流系主播，记录日常点滴，让人心情舒畅。',emoji:'☁️',bg:'linear-gradient(135deg,#1e3a5f,#1e40af)'},
+  {id:'v6',name:'红叶Momiji',tags:['吃播','料理','美食'],desc:'料理研究家，每天直播下厨，粉丝痴迷她的手艺。',emoji:'🍁',bg:'linear-gradient(135deg,#7f1d1d,#991b1b)'},
+  {id:'v7',name:'幽灵Ghost',tags:['鬼畜','搞笑','整活'],desc:'鬼才整活主播，每期节目都让人捧腹大笑。',emoji:'👻',bg:'linear-gradient(135deg,#1f2937,#374151)'},
+  {id:'v8',name:'星河Galaxia',tags:['科普','天文','知识'],desc:'天文爱好者，用通俗易懂的方式科普宇宙知识。',emoji:'🌌',bg:'linear-gradient(135deg,#0c4a6e,#075985)'},
+  {id:'v9',name:'玲珑Linglong',tags:['手工','绘画','创作'],desc:'艺术系主播，直播手绘和手工制作，作品精致可爱。',emoji:'🎨',bg:'linear-gradient(135deg,#4a044e,#701a75)'},
+  {id:'v10',name:'烬火Ember',tags:['战略','剧情','角色扮演'],desc:'沉浸式RPG主播，角色扮演技术一流，每局都是剧本。',emoji:'🔥',bg:'linear-gradient(135deg,#7c2d12,#9a3412)'},
+  {id:'v11',name:'雨声Ame',tags:['ASMR','睡前','助眠'],desc:'治愈系ASMR主播，夜晚直播助眠，粉丝睡前必追。',emoji:'🌧️',bg:'linear-gradient(135deg,#164e63,#155e75)'},
+  {id:'v12',name:'阳光Sunny',tags:['运动','健身','活力'],desc:'元气满满的健身主播，带着粉丝一起动起来。',emoji:'☀️',bg:'linear-gradient(135deg,#713f12,#78350f)'},
+  {id:'v13',name:'碎梦Yume',tags:['剧情','互动','恐怖'],desc:'极其擅长剧情类恐怖游戏，直播间经常充满惊叫声。',emoji:'🌙',bg:'linear-gradient(135deg,#2d1b69,#3730a3)'},
+  {id:'v14',name:'蝶舞Chou',tags:['舞蹈','3D','演出'],desc:'3D模型精良的舞蹈系主播，每次演出都是视觉享受。',emoji:'🦋',bg:'linear-gradient(135deg,#134e4a,#115e59)'},
+  {id:'v15',name:'铁拳Tekken',tags:['格斗','竞技','硬核'],desc:'格斗游戏天花板，打法犀利风骚，素人挑战从未失败。',emoji:'👊',bg:'linear-gradient(135deg,#450a0a,#7f1d1d)'},
+  {id:'v16',name:'云朵Nuage',tags:['法语','多语种','文化'],desc:'精通三国语言的文化主播，带粉丝云游世界各地。',emoji:'🌤️',bg:'linear-gradient(135deg,#0f172a,#1e293b)'},
+];
+
+const STATUS_LIST = ['idle','live','break'];
+const STATUS_TEXT = {idle:'空闲中',live:'直播中',break:'停播休息',crisis:'私联隐患'};
+const STATUS_CLS = {idle:'idle',live:'live',break:'break',crisis:'crisis'};
+
+// 粉丝群常规聊天消息库
+const FAN_MSGS_NORMAL = [
+  '今天主播直播了好久！',
+  '主播的声音好好听啊～',
+  '支持主播！！！冲！',
+  '这个技术也太强了叭',
+  '啊啊啊我的心跳加速了',
+  '主播今天状态好好哦',
+  '一直支持主播💜',
+  '主播什么时候开播？',
+  '刚来！主播在干嘛',
+  '主播笑起来真的好可爱！',
+  '今天直播内容超棒！',
+  '我要成为主播最忠实的粉丝！',
+  '今晚的直播太好看了',
+  '主播加油加油！',
+  '主播今天气色很好～',
+  '这期内容也太棒了！',
+];
+const FAN_MSGS_ANGRY = [
+  '！！什么情况？？主播私联被抓？？',
+  '不会是真的吧，我不信...',
+  '资料都截图了是谁啊',
+  '等官方声明，不要乱传',
+  '这如果是真的我真的会伤心死的',
+  '主播你给我们一个解释！',
+  '气到颤抖了，真的有点失望...',
+  '别吵了先等消息',
+  '不管真假这个舆论已经很严重了',
+  '公会老板呢？呢？？没人管吗？',
+  '主播到底有没有私联给个说法',
+  '粉丝群现在乱成一锅粥了',
+];
+// 主播大群常规聊天
+const GUILD_MSGS = [
+  '今天直播好累啊，睡了睡了',
+  '哈哈哈我直播时喝水呛到了，粉丝笑疯了',
+  '欸有人一起打游戏吗？',
+  '午饭吃了泡面，摸了😂',
+  '感谢老板今天的关心！',
+  '谁的直播间互动最多啊？我感觉我不行了',
+  '粉丝送了我超甜的礼物，心里暖暖的',
+  '今晚开个联动直播有人参加吗',
+  '对接一下下周的排期吧',
+  '最近嗓子有点不舒服，可能要请假几天',
+  '老板早啊！',
+  '上周数据出来了，小小涨粉了',
+];
+const GUILD_MSGS_CRISIS = [
+  '……',
+  '怎么回事啊，最近外面好乱',
+  '唉，有些人真是……算了不说了',
+  '公会形象这下不太好说话了呢～',
+  '大家冷静，等官方消息',
+  '某些人真的要自重一下呢🙂',
+];
+
+// 主播回复私聊的回复库（非危机时）
+function getVupReply(vup, msg) {
+  const m = msg.toLowerCase();
+  const replies = [
+    `嗯嗯老板！${['我知道了😊','收到！','好哒！','谢谢老板关心～'][Math.floor(Math.random()*4)]}`,
+    `老板，${['最近直播还挺顺利的！','我在努力的！','感谢老板！'][Math.floor(Math.random()*3)]}`,
+    `${vup.name}明白了，${['会继续加油的！','我会注意的！','放心交给我吧！'][Math.floor(Math.random()*3)]}`,
+    `谢谢老板跟我聊天！${['感觉充了好多电～','今天心情很好！','嘿嘿嘿 ><'][Math.floor(Math.random()*3)]}`,
+    `哈哈哈${['是这样没错！','老板说的对！','我就知道老板最懂我了！'][Math.floor(Math.random()*3)]}`,
+    `${['嗯嗯！','好的！','明白啦！'][Math.floor(Math.random()*3)]}老板有什么需要我配合的吗？`,
+  ];
+  if(m.includes('加油')) return `谢谢老板的鼓励！${vup.name}会继续努力的！💪`;
+  if(m.includes('辛苦')||m.includes('辛苦了')) return `哈哈不辛苦啦！${['喜欢直播！','这是我热爱的事！','能做喜欢的事很幸福！'][Math.floor(Math.random()*3)]}`;
+  if(m.includes('喜欢')||m.includes('好看')||m.includes('厉害')) return `老板真的太会夸人了！${['//>//','嘿嘿谢谢！','开心！！'][Math.floor(Math.random()*3)]}`;
+  if(m.includes('最近')||m.includes('怎么样')) return `最近还好！${['状态不错哦','粉丝也很可爱','直播数据还行'][Math.floor(Math.random()*3)]}，老板放心！`;
+  return replies[Math.floor(Math.random()*replies.length)];
+}
+
+// 候选招聘列表（每次刷新6个）
+let recruitPool = [];
+
+// =============================================
+//  页面流程
+// =============================================
+function showSetup() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+}
+
+function startGame() {
+  const name = document.getElementById('input-guild-name').value.trim();
+  const prefix = document.getElementById('input-guild-prefix').value.trim();
+  if(!name) { showToast('请输入公会名称！','warning'); return; }
+  if(!prefix) { showToast('请输入公会前缀！','warning'); return; }
+  G.guildName = name;
+  G.prefix = prefix;
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  document.getElementById('display-guild').textContent = `✦ ${name}`;
+  document.getElementById('guild-group-name').textContent = `${name} 公会大群`;
+  refreshBalance();
+  refreshRecruitPool();
+  startDayTimer();
+  G.chatHistories['guild-group'] = [];
+  scheduleGuildGroupMsg();
+}
+
+// =============================================
+//  日计时器（每30秒=1天）
+// =============================================
+function startDayTimer() {
+  G.dayTimer = setInterval(()=>{
+    G.day++;
+    document.getElementById('display-day').textContent = G.day;
+    G.todayIncome = 0;
+    document.getElementById('today-income').textContent = '0';
+    // 每5天刷新招聘池
+    if(G.day % 5 === 0) { refreshRecruitPool(); showToast('📋 招聘页面已更新，有新的中之人加入候选！'); }
+    // 主播状态随机切换
+    G.vups.forEach(vup=>{
+      if(vup.fired || vup.crisis) return;
+      const r = Math.random();
+      if(r < 0.35) vup.status = 'live';
+      else if(r < 0.6) vup.status = 'idle';
+      else vup.status = 'break';
+      if(vup.status==='live') {
+        const earn = Math.floor(Math.random()*2000+500);
+        vup.totalEarned += earn;
+        vup.todayEarned += earn;
+        G.balance += earn;
+        G.todayIncome += earn;
+        G.totalIncome += earn;
+        refreshBalance();
+      }
+    });
+    // 随机触发事件
+    scheduleRandomEvents();
+    renderStatus();
+    renderIncome();
+  }, 30000);
+}
+
+function scheduleRandomEvents() {
+  G.vups.forEach(vup=>{
+    if(vup.fired||vup.crisis) return;
+    // 随机资源请求（约20%概率/天）
+    if(!vup.pendingResource && Math.random()<0.2) {
+      setTimeout(()=>triggerResourceRequest(vup), Math.random()*15000+5000);
+    }
+    // 私联危机（非常罕见，超过15天后才有机会，约1%/天）
+    if(!vup.crisis && G.day > 15 && Math.random()<0.01) {
+      setTimeout(()=>triggerCrisis(vup), Math.random()*20000+10000);
+    }
+    // 好感度为0超过20天后，有概率主动解约
+    if(vup.affinity<=0 && vup.daysAtZero>=20 && Math.random()<0.15) {
+      setTimeout(()=>triggerSelfFire(vup), Math.random()*10000+5000);
+    }
+    if(vup.affinity<=0) vup.daysAtZero++;
+    else vup.daysAtZero=0;
+    // 主播主动找老板私聊（约10%）
+    if(!vup.crisis && Math.random()<0.1) {
+      setTimeout(()=>vupInitiateChat(vup), Math.random()*20000+5000);
+    }
+    // 粉丝群随机发言
+    setTimeout(()=>addFanMsg(vup.id, randomFrom(FAN_MSGS_NORMAL), false), Math.random()*25000);
+  });
+  // 主播大群随机聊天（必须≥2个主播才会发）
+  const activeVups = G.vups.filter(v=>!v.fired);
+  if(activeVups.length >= 2 && Math.random()<0.7) {
+    setTimeout(()=>{
+      const vup = randomFrom(activeVups);
+      const msg = randomFrom(GUILD_MSGS);
+      addGuildMsg(`(${vup.name})：${msg}`);
+    }, Math.random()*25000);
+  }
+}
+
+// =============================================
+//  招聘池
+// =============================================
+function refreshRecruitPool() {
+  const hiredIds = G.vups.map(v=>v.id);
+  const available = VUP_POOL.filter(v=>!hiredIds.includes(v.id));
+  recruitPool = shuffle(available).slice(0,6);
+  renderRecruitGrid();
+}
+
+function renderRecruitGrid() {
+  const grid = document.getElementById('recruit-grid');
+  if(recruitPool.length===0) {
+    grid.innerHTML = '<div style="color:#6b6b9a;grid-column:1/-1;padding:40px 0;text-align:center;">暂时没有新的候选人，请等待下次刷新</div>';
+    return;
+  }
+  grid.innerHTML = recruitPool.map(vup=>`
+    <div class="recruit-card">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        <div class="vup-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+        <div>
+          <div class="vup-name">${G.prefix}${vup.name}</div>
+          <div class="vup-tags">${vup.tags.map(t=>`<span class="vup-tag">${t}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="vup-desc">${vup.desc}</div>
+      <div class="cost">💰 招募费用：¥3,000（皮套+运营）</div>
+      <button class="btn-recruit" onclick="recruitVup('${vup.id}')" ${G.balance<3000?'disabled':''}>
+        ${G.balance<3000?'余额不足':'✦ 招募此人'}
+      </button>
+    </div>
+  `).join('');
+}
+
+function recruitVup(id) {
+  if(G.balance<3000) { showToast('余额不足！无法招募。','warning'); return; }
+  const template = VUP_POOL.find(v=>v.id===id);
+  if(!template) return;
+  G.balance -= 3000;
+  refreshBalance();
+  const vup = {
+    ...template,
+    name: G.prefix + template.name,
+    baseName: template.name,
+    status: 'idle',
+    affinity: 0,
+    crisis: false,
+    crisisHandled: false,
+    fired: false,
+    pendingResource: false,
+    totalEarned: 0,
+    todayEarned: 0,
+    daysAtZero: 0,
+    recruitDay: G.day,
+  };
+  G.vups.push(vup);
+  G.hiredCount++;
+  G.chatHistories[`dm-${id}`] = [];
+  G.chatHistories[`fan-${id}`] = [];
+  G.unreadDots[`dm-${id}`] = false;
+  G.unreadDots[`fan-${id}`] = false;
+  recruitPool = recruitPool.filter(v=>v.id!==id);
+  renderRecruitGrid();
+  renderDMList();
+  renderFanList();
+  renderStatus();
+  renderIncome();
+  showToast(`🎉 成功招募 ${vup.name}！欢迎加入公会！`,'success');
+  // 欢迎消息
+  setTimeout(()=>{
+    pushChat(`dm-${id}`, 'other', `老板好！我是${vup.name}，请多关照！很高兴能加入${G.guildName}！🎉`,{sender:vup.name});
+    setUnread(`dm-${id}`);
+  }, 2000);
+  // 进群提示
+  setTimeout(()=>{
+    // 粉丝群
+    addFanMsg(id, `欢迎${vup.name}加入！！！`, false);
+    // 主播群
+    const activeCount = G.vups.filter(v=>!v.fired).length;
+    if(activeCount >= 2){
+      addGuildMsg(`(系统) ${vup.name} 加入了公会大群！`);
+      addGuildMsg(`(${vup.name}) 大家好！我是新来的，请多多指教✨`);
+    }
+  }, 3000);
+}
+
+// =============================================
+//  消息系统
+// =============================================
+function renderDMList() {
+  const list = document.getElementById('dm-list');
+  const vups = G.vups.filter(v=>!v.fired);
+  list.innerHTML = vups.map(vup=>`
+    <div class="msg-item ${G.activeChatId===`dm-${vup.id}`?'active':''}" onclick="openChat('dm-${vup.id}')">
+      <div class="msg-item-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+      <div class="msg-item-info">
+        <div class="msg-item-name">${vup.name}${vup.crisis?'  ⚠️':''}</div>
+        <div class="msg-item-preview">${getLastMsg(`dm-${vup.id}`)}</div>
+      </div>
+      ${G.unreadDots[`dm-${vup.id}`]?'<div class="msg-unread-dot"></div>':''}
+    </div>
+  `).join('');
+}
+
+function renderFanList() {
+  const list = document.getElementById('fan-list');
+  const vups = G.vups.filter(v=>!v.fired);
+  list.innerHTML = vups.map(vup=>`
+    <div class="msg-item ${G.activeChatId===`fan-${vup.id}`?'active':''}" onclick="openChat('fan-${vup.id}')">
+      <div class="msg-item-avatar" style="background:${vup.bg};font-size:.9em;">${vup.emoji}</div>
+      <div class="msg-item-info">
+        <div class="msg-item-name">${vup.name} 粉丝群${vup.crisis?'  🔥':''}</div>
+        <div class="msg-item-preview">${getLastMsg(`fan-${vup.id}`)}</div>
+      </div>
+      ${G.unreadDots[`fan-${vup.id}`]?'<div class="msg-unread-dot"></div>':''}
+    </div>
+  `).join('');
+}
+
+function getLastMsg(chatId) {
+  const hist = G.chatHistories[chatId]||[];
+  if(!hist.length) return '暂无消息';
+  const last = hist[hist.length-1];
+  if(last.type==='resource') return '[资源请求]';
+  const t = last.text||'';
+  return t.length>18?t.slice(0,18)+'…':t;
+}
+
+let currentChatVupId = null; // 当前聊天对象的vup原始id
+
+function openChat(chatId) {
+  G.activeChatId = chatId;
+  G.unreadDots[chatId] = false;
+  updateBadge();
+  renderDMList();
+  renderFanList();
+  // 更新侧栏active
+  document.querySelectorAll('.msg-item').forEach(el=>{
+    el.classList.remove('active');
+  });
+
+  const header = document.getElementById('msg-header');
+  const chatArea = document.getElementById('chat-messages');
+  const inputArea = document.getElementById('chat-input-area');
+
+  if(chatId==='guild-group') {
+    currentChatVupId = null;
+    const vup = null;
+    header.innerHTML = `
+      <div class="chat-avatar" style="background:#2d1b69;font-size:1.1em;">🏰</div>
+      <div>
+        <div class="chat-name">${G.guildName} 公会大群</div>
+        <div class="chat-sub">全员：${G.vups.filter(v=>!v.fired).length} 位主播</div>
+      </div>`;
+    inputArea.className = 'chat-input-area';
+    renderGuildGroupMessages(chatArea);
+    document.getElementById('dot-guild-group').style.display='none';
+    return;
+  }
+
+  const isFan = chatId.startsWith('fan-');
+  const isDM = chatId.startsWith('dm-');
+  const vupId = chatId.replace('fan-','').replace('dm-','');
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+  currentChatVupId = vupId;
+
+  if(isDM) {
+    header.innerHTML = `
+      <div class="chat-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+      <div>
+        <div class="chat-name">${vup.name}</div>
+        <div class="chat-sub">${vup.crisis?'⚠️ 私联隐患处理中':STATUS_TEXT[vup.status]}</div>
+      </div>
+      <div class="affinity-bar">
+        <span class="affinity-label">好感度 ${vup.affinity}</span>
+        <div class="affinity-track">
+          <div class="affinity-fill" style="width:${vup.affinity}%"></div>
+        </div>
+      </div>`;
+    inputArea.className = vup.crisis?'chat-input-area disabled':'chat-input-area';
+    document.getElementById('chat-text').placeholder = vup.crisis?'该主播当前无法回应…':'输入消息…';
+  } else {
+    header.innerHTML = `
+      <div class="chat-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+      <div>
+        <div class="chat-name">${vup.name} 粉丝群</div>
+        <div class="chat-sub">${vup.crisis?'🔥 粉丝激烈争论中':'粉丝交流区'}</div>
+      </div>`;
+    inputArea.className = 'chat-input-area';
+    document.getElementById('chat-text').placeholder = '在粉丝群发言…';
+  }
+  renderChatMessages(chatId, chatArea, isFan);
+}
+
+function renderChatMessages(chatId, container, isFan) {
+  const hist = G.chatHistories[chatId]||[];
+  container.innerHTML = hist.map(m=>renderMsg(m, isFan)).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderGuildGroupMessages(container) {
+  const hist = G.chatHistories['guild-group']||[];
+  container.innerHTML = hist.map(m=>{
+    if(m.role==='system') {
+      return `<div style="text-align:center;color:#4c1d95;font-size:.8em;padding:4px 0;">${m.text}</div>`;
+    }
+    if(m.role==='me') {
+      return `<div class="me-fan-bubble"><div class="me-fan-text">${escHtml(m.text)}</div></div>`;
+    }
+    return `<div class="fan-bubble">
+      <div class="fan-avatar">👤</div>
+      <div class="fan-content">
+        <div class="fan-name">${escHtml(m.sender||'')}</div>
+        <div class="fan-text ${m.angry?'angry':''}">${escHtml(m.text)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderMsg(m, isFan) {
+  if(isFan) {
+    if(m.role==='me') return `<div class="me-fan-bubble"><div class="me-fan-text">${escHtml(m.text)}</div></div>`;
+    if(m.type==='system') return `<div style="text-align:center;color:#4c1d95;font-size:.8em;padding:4px 0;">${m.text}</div>`;
+    return `<div class="fan-bubble">
+      <div class="fan-avatar">${m.fanEmoji||'🌟'}</div>
+      <div class="fan-content">
+        <div class="fan-name">${escHtml(m.sender||'')}</div>
+        <div class="fan-text ${m.angry?'angry':''}">${escHtml(m.text)}</div>
+      </div>
+    </div>`;
+  }
+  // DM
+  if(m.type==='resource') {
+    const handled = m.handled;
+    return `<div class="resource-request-bubble">
+      <div class="req-title">💰 资源申请</div>
+      <div style="color:#a78bfa;font-size:.85em;margin-bottom:6px;">${escHtml(m.desc||'')}</div>
+      <div class="req-amount">申请金额：¥${m.amount}</div>
+      ${handled?`<div style="font-size:.82em;color:${m.agreed?'#34d399':'#f87171'}">${m.agreed?'✅ 已同意':'❌ 已拒绝'}</div>`:`
+      <div class="req-btns">
+        <button class="btn-agree" onclick="handleResource('${m.vupId}','${m.msgIdx}',true)">✅ 同意</button>
+        <button class="btn-refuse" onclick="handleResource('${m.vupId}','${m.msgIdx}',false)">❌ 拒绝</button>
+      </div>`}
+    </div>`;
+  }
+  if(m.type==='system') return `<div style="text-align:center;color:#4c1d95;font-size:.8em;padding:4px 0;">${m.text}</div>`;
+  const role = m.role==='me'?'me':'other';
+  return `<div class="chat-bubble ${role}">
+    ${role==='other'?`<span class="bubble-sender">${escHtml(m.sender||'')}</span>`:''}
+    <div class="bubble-text">${escHtml(m.text)}</div>
+  </div>`;
+}
+
+function handleChatKey(e) {
+  if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendChatMsg(); }
+}
+
+function sendChatMsg() {
+  const textarea = document.getElementById('chat-text');
+  const text = textarea.value.trim();
+  if(!text) return;
+  textarea.value = '';
+  const chatId = G.activeChatId;
+  if(!chatId) return;
+
+  if(chatId==='guild-group') {
+    addGuildMsg(text, true);
+    return;
+  }
+  const isFan = chatId.startsWith('fan-');
+  const vupId = chatId.replace('fan-','').replace('dm-','');
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+
+  if(isFan) {
+    pushChat(chatId,'me',text);
+    refreshChatIfActive(chatId);
+    return;
+  }
+  // DM
+  if(vup.crisis) return;
+  pushChat(chatId,'me',text);
+  // 好感度+1（每次聊天）
+  changeAffinity(vup, 1);
+  refreshChatIfActive(chatId);
+  // 主播回复
+  setTimeout(()=>{
+    const reply = getVupReply(vup, text);
+    pushChat(chatId,'other',reply,{sender:vup.name});
+    refreshChatIfActive(chatId);
+    checkAffinity100(vup);
+  }, 800+Math.random()*1200);
+}
+
+function pushChat(chatId, role, text, extra={}) {
+  if(!G.chatHistories[chatId]) G.chatHistories[chatId]=[];
+  G.chatHistories[chatId].push({role, text, ...extra});
+  // 限制历史长度
+  if(G.chatHistories[chatId].length>200) G.chatHistories[chatId].shift();
+}
+
+function refreshChatIfActive(chatId) {
+  if(G.activeChatId!==chatId) return;
+  const container = document.getElementById('chat-messages');
+  const isFan = chatId.startsWith('fan-');
+  if(chatId==='guild-group') renderGuildGroupMessages(container);
+  else renderChatMessages(chatId, container, isFan);
+}
+
+function setUnread(chatId) {
+  if(G.activeChatId===chatId) return;
+  G.unreadDots[chatId]=true;
+  updateBadge();
+  renderDMList();
+  renderFanList();
+}
+
+function updateBadge() {
+  const hasUnread = Object.values(G.unreadDots).some(v=>v);
+  document.getElementById('badge-msg').style.display = hasUnread?'block':'none';
+}
+
+// =============================================
+//  粉丝群消息
+// =============================================
+const FAN_NAMES = ['狂热的粉丝','忠实粉丝','真爱粉','铁杆粉丝','守护粉丝','死忠粉'];
+const FAN_EMOJIS = ['🌟','💜','🌸','🦋','⭐','🌙'];
+
+function addFanMsg(vupId, text, angry=false) {
+  const chatId = `fan-${vupId}`;
+  if(!G.chatHistories[chatId]) G.chatHistories[chatId]=[];
+  const idx = Math.floor(Math.random()*FAN_NAMES.length);
+  G.chatHistories[chatId].push({
+    role:'fan', text, angry,
+    sender: FAN_NAMES[idx],
+    fanEmoji: FAN_EMOJIS[idx%FAN_EMOJIS.length],
+  });
+  if(G.chatHistories[chatId].length>200) G.chatHistories[chatId].shift();
+  setUnread(chatId);
+  // 更新预览
+  renderFanList();
+  refreshChatIfActive(chatId);
+}
+
+// =============================================
+//  主播大群消息
+// =============================================
+function addGuildMsg(text, isMe=false, angry=false) {
+  if(!G.chatHistories['guild-group']) G.chatHistories['guild-group']=[];
+  let sender = '';
+  if(!isMe) {
+    // 解析 (xxx)：
+    const match = text.match(/^\((.+?)\)[:：]/);
+    sender = match?match[1]:text.slice(0,6);
+    text = match?text.replace(match[0],'').trim():text;
+  }
+  G.chatHistories['guild-group'].push({
+    role: isMe?'me':'other', text, sender, angry,
+  });
+  if(G.chatHistories['guild-group'].length>300) G.chatHistories['guild-group'].shift();
+  document.getElementById('guild-group-preview').textContent = isMe?text:(sender?`${sender}：${text}`:text);
+  if(!isMe) {
+    setUnread('guild-group');
+    document.getElementById('dot-guild-group').style.display='block';
+  }
+  refreshChatIfActive('guild-group');
+}
+
+function scheduleGuildGroupMsg() {
+  const delay = 20000+Math.random()*40000;
+  setTimeout(()=>{
+    scheduleGuildGroupMsg();
+  }, delay);
+}
+
+// =============================================
+//  资源请求
+// =============================================
+const RESOURCE_REQUESTS = [
+  {desc:'申请购买直播设备升级（新麦克风+灯光）',amount:3500},
+  {desc:'申请参加线下漫展等活动的差旅费',amount:5000},
+  {desc:'申请定制周边物料费用',amount:2000},
+  {desc:'申请更新音效素材库',amount:500},
+  {desc:'申请场景背景图定制',amount:1200},
+  {desc:'申请翻唱授权费用',amount:1500},
+  {desc:'申请直播背景音乐',amount:1000},
+  {desc:'申请皮套新衣定制',amount:3000},
+];
+
+function triggerResourceRequest(vup) {
+  if(vup.fired||vup.crisis||vup.pendingResource) return;
+  vup.pendingResource = true;
+  const req = randomFrom(RESOURCE_REQUESTS);
+  const chatId = `dm-${vup.id}`;
+  const msgIdx = (G.chatHistories[chatId]||[]).length;
+  if(!G.chatHistories[chatId]) G.chatHistories[chatId]=[];
+  G.chatHistories[chatId].push({
+    role:'other', type:'resource',
+    text:'[资源申请]', desc:req.desc, amount:req.amount,
+    vupId:vup.id, msgIdx, handled:false, agreed:false,
+    sender:vup.name,
+  });
+  setUnread(chatId);
+  showToast(`💰 ${vup.name} 向你申请资源！`);
+  refreshChatIfActive(chatId);
+  renderDMList();
+}
+
+function handleResource(vupId, msgIdx, agree) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+  const chatId = `dm-${vupId}`;
+  const hist = G.chatHistories[chatId]||[];
+  const msg = hist[msgIdx];
+  if(!msg||msg.handled) return;
+  msg.handled = true;
+  msg.agreed = agree;
+  vup.pendingResource = false;
+  if(agree) {
+    if(G.balance<msg.amount) { showToast('余额不足！','warning'); msg.handled=false; return; }
+    G.balance -= msg.amount;
+    refreshBalance();
+    changeAffinity(vup, 10);
+    showToast(`✅ 已同意 ${vup.name} 的资源申请，花费 ¥${msg.amount}`,'success');
+    setTimeout(()=>{
+      pushChat(chatId,'other',`谢谢老板！！！收到资源了，我一定会好好用的！💜`,{sender:vup.name});
+      refreshChatIfActive(chatId);
+    }, 800);
+  } else {
+    changeAffinity(vup, -10);
+    showToast(`❌ 已拒绝 ${vup.name} 的资源申请`);
+    setTimeout(()=>{
+      pushChat(chatId,'other',`哦…好的，我知道了。`,{sender:vup.name});
+      refreshChatIfActive(chatId);
+    }, 800);
+  }
+  refreshChatIfActive(chatId);
+  renderStatus();
+}
+
+// =============================================
+//  私联危机
+// =============================================
+function triggerCrisis(vup) {
+  if(vup.fired||vup.crisis) return;
+  vup.crisis = true;
+  vup.status = 'crisis';
+  // 粉丝群炸锅
+  for(let i=0;i<5;i++) {
+    setTimeout(()=>{
+      addFanMsg(vup.id, randomFrom(FAN_MSGS_ANGRY), true);
+    }, i*800);
+  }
+  // 主播大群阴阳怪气
+  const activeCount = G.vups.filter(v=>!v.fired).length;
+  if(activeCount >= 2){
+    setTimeout(()=>{
+      const v = randomFrom(G.vups.filter(x=>!x.fired && x.id !== vup.id));
+      addGuildMsg(`(${v.name})：${randomFrom(GUILD_MSGS_CRISIS)}`, false, true);
+    }, 3000);
+    setTimeout(()=>{
+      const v = randomFrom(G.vups.filter(x=>!x.fired && x.id !== vup.id));
+      addGuildMsg(`(${v.name})：${randomFrom(GUILD_MSGS_CRISIS)}`, false, true);
+    }, 6000);
+  }
+  // 弹窗询问
+  showCrisisModal(vup);
+  renderStatus();
+  showToast(`⚠️ ${vup.name} 出现私联隐患！请及时处理！`,'warning');
+}
+
+function showCrisisModal(vup) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:560px;">
+      <h3>⚠️ 私联隐患警报</h3>
+      <p><strong style="color:#fca5a5">${vup.name}</strong> 出现疑似私联情况，粉丝群已开始骚动。<br>请选择处理方式：</p>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="btn-modal-yes" onclick="startCrisisDialogue('${vup.id}',this.closest('.modal-overlay'))">💬 与主播谈话</button>
+        <button class="btn-modal-no" onclick="directFire('${vup.id}',this.closest('.modal-overlay'))" style="border-color:#7f1d1d;color:#f87171;">🚫 直接解约</button>
+      </div>
+    </div>`;
+  document.getElementById('modal-container').appendChild(modal);
+}
+
+// 危机对话系统
+const CRISIS_DIALOGUES = [
+  {
+    q: ['我需要你解释一下最近外界传言的情况', '你有什么要对我说的吗，关于最近的事'],
+    replies: {
+      a: ['老板…我知道你一定很失望。我没有私联，那个截图是断章取义的，希望老板给我一次机会澄清。', '事情不是外面说的那样！那个人是我在网络上认识的普通朋友，真的没有私联行为，我很委屈…'],
+      b: ['……老板，对不起，我确实和那个人有些联系，但真的没有你们想的那么严重。', '我不知道怎么解释，但我保证不会发生更坏的情况，请老板相信我。']
+    }
+  },
+  {
+    q: ['你知道这件事对公会的影响有多大吗', '粉丝群现在乱成一团了，你有什么打算'],
+    replies: {
+      a: ['我知道…我很抱歉给公会带来了麻烦。我愿意配合任何处理方式，包括暂停直播。', '我会出来公开道歉的，并且暂时从网络上消失一段时间，直到事情平息。'],
+      b: ['……老板说的是，我没有立场要求什么。结果怎样都行，我认了。', '我准备好接受处罚了。只希望老板不要彻底放弃我。']
+    }
+  },
+  {
+    q: ['我决定给你一次机会，但你必须暂停直播并配合处理', '先暂时停播，等事情平息再说'],
+    replies: {
+      a: ['谢谢老板…我会配合的。一定不会再让你失望了。', '我明白了。谢谢老板愿意给我机会，我会做好的。'],
+      b: ['好，我听老板的。', '…好的，我会暂时停播的，谢谢老板还愿意给我机会。']
+    }
+  }
+];
+
+let crisisState = {};
+
+function startCrisisDialogue(vupId, modal) {
+  modal.remove();
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+  crisisState = { vupId, step: 0, resolved: false };
+  showCrisisStep(vup, 0);
+}
+
+function showCrisisStep(vup, step) {
+  const d = CRISIS_DIALOGUES[step];
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'crisis-dialogue-modal';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:560px;">
+      <h3>💬 与 ${vup.name} 谈话</h3>
+      <p style="color:#6b6b9a;font-size:.82em;margin-bottom:16px;">选择你要说的话（第 ${step+1}/${CRISIS_DIALOGUES.length} 轮）</p>
+      <div class="crisis-choice">
+        <button class="choice-btn" onclick="chooseCrisisOption('${vup.id}','a',${step},this)">
+          <span class="choice-label">选项 A</span>${d.q[0]}
+        </button>
+        <button class="choice-btn" onclick="chooseCrisisOption('${vup.id}','b',${step},this)">
+          <span class="choice-label">选项 B</span>${d.q[1]}
+        </button>
+      </div>
+      <div id="crisis-reply-area" style="margin-top:16px;display:none;"></div>
+    </div>`;
+  const existing = document.getElementById('crisis-dialogue-modal');
+  if(existing) existing.remove();
+  document.getElementById('modal-container').appendChild(modal);
+}
+
+function chooseCrisisOption(vupId, opt, step, btn) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+  const d = CRISIS_DIALOGUES[step];
+  const replies = d.replies[opt];
+  const reply = replies[Math.floor(Math.random()*replies.length)];
+  // 显示回复
+  const replyArea = document.getElementById('crisis-reply-area');
+  replyArea.style.display = 'block';
+  replyArea.innerHTML = `
+    <div style="font-size:.8em;color:#a78bfa;margin-bottom:6px;">${vup.name}：</div>
+    <div class="crisis-vup-reply">"${reply}"</div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+      ${step < CRISIS_DIALOGUES.length-1
+        ? `<button class="btn-modal-yes" onclick="nextCrisisStep('${vupId}',${step+1},this)">继续 →</button>`
+        : `<button class="btn-modal-yes" onclick="resolveCrisis('${vupId}','keep',this)">✅ 留任（暂停直播）</button>
+           <button class="btn-modal-no" onclick="resolveCrisis('${vupId}','fire',this)" style="border-color:#7f1d1d;color:#f87171;">🚫 解雇</button>`
+      }
+    </div>`;
+  // 禁用选项按钮
+  btn.closest('.crisis-choice').querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+}
+
+function nextCrisisStep(vupId, step, btn) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  document.getElementById('crisis-dialogue-modal').remove();
+  showCrisisStep(vup, step);
+}
+
+function resolveCrisis(vupId, decision, btn) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  document.getElementById('crisis-dialogue-modal').remove();
+  if(decision==='fire') {
+    fireVup(vupId);
+    showToast(`${vup.name} 已被解雇。`,'warning');
+  } else {
+    vup.crisis = false;
+    vup.crisisHandled = true;
+    vup.status = 'break';
+    // 很久之后才恢复回复
+    showToast(`${vup.name} 已留任，暂停直播处理中…`);
+    setTimeout(()=>{
+      vup.status = 'idle';
+      pushChat(`dm-${vupId}`,'other','老板…我回来了。谢谢你当时给我机会。我不会再让你失望的。',{sender:vup.name});
+      setUnread(`dm-${vupId}`);
+      // 粉丝群平息
+      addFanMsg(vupId,'事情解决了，主播努力复出！支持！',false);
+      renderStatus();
+      renderDMList();
+    }, 60000); // 1分钟后（模拟很多天）
+  }
+  renderStatus();
+  renderDMList();
+}
+
+function directFire(vupId, modal) {
+  modal.remove();
+  const vup = G.vups.find(v=>v.id===vupId);
+  fireVup(vupId);
+  showToast(`${vup.name} 已被直接解约。`,'warning');
+}
+
+// =============================================
+//  好感度系统
+// =============================================
+function changeAffinity(vup, delta) {
+  vup.affinity = Math.max(0, Math.min(100, vup.affinity+delta));
+  renderStatus();
+  // 更新当前聊天头部
+  if(G.activeChatId===`dm-${vup.id}`) {
+    openChat(`dm-${vup.id}`);
+  }
+  checkAffinity100(vup);
+}
+
+function checkAffinity100(vup) {
+  if(vup.affinity>=100 && !vup.confessed && !vup.fired && !vup.crisis) {
+    vup.confessed = true;
+    showConfessModal(vup);
+  }
+  // 全员好感度90+
+  const active = G.vups.filter(v=>!v.fired);
+  if(active.length>=3 && active.every(v=>v.affinity>=90) && !G.endingTriggered) {
+    G.endingTriggered = true;
+    setTimeout(()=>triggerEnding('perfect'), 2000);
+  }
+}
+
+function showConfessModal(vup) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box" style="text-align:center;">
+      <div style="font-size:2em;margin-bottom:12px;">${vup.emoji}</div>
+      <h3 style="color:#ec4899;">💌 告白！</h3>
+      <p><strong style="color:#f9a8d4">${vup.name}</strong> 向你表白了！<br>"老板…你一直以来对我那么好，我…我喜欢你！"</p>
+      <div class="modal-btns" style="justify-content:center;gap:16px;margin-top:24px;">
+        <button class="btn-modal-yes" style="background:linear-gradient(135deg,#be185d,#ec4899);" onclick="acceptConfess('${vup.id}',this)">💗 接受</button>
+        <button class="btn-modal-no" onclick="rejectConfess('${vup.id}',this)">💔 拒绝</button>
+      </div>
+    </div>`;
+  document.getElementById('modal-container').appendChild(modal);
+}
+
+function acceptConfess(vupId, btn) {
+  btn.closest('.modal-overlay').remove();
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!G.endingTriggered) {
+    G.endingTriggered = true;
+    triggerEnding('love', vup);
+  }
+}
+
+function rejectConfess(vupId, btn) {
+  btn.closest('.modal-overlay').remove();
+  const vup = G.vups.find(v=>v.id===vupId);
+  showToast(`💔 ${vup.name} 因受到打击，含泪离开了公会…`,'warning');
+  fireVup(vupId);
+}
+
+// =============================================
+//  解雇系统
+// =============================================
+function fireVup(vupId, selfFire=false) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup||vup.fired) return;
+  vup.fired = true;
+  vup.status = 'idle';
+  // 从聊天列表移除
+  if(G.activeChatId===`dm-${vupId}`||G.activeChatId===`fan-${vupId}`) {
+    G.activeChatId = null;
+    document.getElementById('msg-header').innerHTML = '<div style="color:#6b6b9a;padding:20px;">← 选择一个会话</div>';
+    document.getElementById('chat-messages').innerHTML = '';
+  }
+  addGuildMsg(`(系统) ${vup.name} 已${selfFire?'解约离开':'离开'}公会。`);
+  renderDMList();
+  renderFanList();
+  renderStatus();
+  renderIncome();
+  checkAllFiredEnding();
+}
+
+function checkAllFiredEnding() {
+  if(G.vups.length>0 && G.vups.every(v=>v.fired) && G.hiredCount>=3 && !G.endingTriggered) {
+    G.endingTriggered = true;
+    setTimeout(()=>triggerEnding('empty'), 1500);
+  }
+}
+
+function triggerSelfFire(vup) {
+  if(vup.fired||vup.crisis) return;
+  showToast(`😢 ${vup.name} 长期得不到关注，主动提出解约…`,'warning');
+  const chatId = `dm-${vup.id}`;
+  pushChat(chatId,'other','老板，我…决定提出解约了。希望老板未来一切顺利。',{sender:vup.name});
+  setUnread(chatId);
+  setTimeout(()=>fireVup(vup.id, true), 3000);
+}
+
+function confirmFire(vupId) {
+  const vup = G.vups.find(v=>v.id===vupId);
+  if(!vup) return;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h3>解雇确认</h3>
+      <p>确定要解雇 <strong style="color:#fca5a5">${vup.name}</strong> 吗？此操作无法撤销。</p>
+      <div class="modal-btns">
+        <button class="btn-modal-yes" style="background:#dc2626;" onclick="fireVup('${vupId}');this.closest('.modal-overlay').remove();">确认解雇</button>
+        <button class="btn-modal-no" onclick="this.closest('.modal-overlay').remove()">取消</button>
+      </div>
+    </div>`;
+  document.getElementById('modal-container').appendChild(modal);
+}
+
+// =============================================
+//  主播主动联系
+// =============================================
+function vupInitiateChat(vup) {
+  if(vup.fired||vup.crisis||vup.pendingResource) return;
+  const msgs = [
+    `老板，今天直播数据还不错！`,
+    `老板，最近休息得好吗？`,
+    `老板！我刚做了个新的直播策划，能给你看看吗？`,
+    `老板，我今天想试试新的直播形式，可以吗？`,
+    `老板你在吗？想跟你聊几句～`,
+    `老板，粉丝今天给我送了好多礼物！好感动！`,
+  ];
+  const chatId = `dm-${vup.id}`;
+  pushChat(chatId,'other',randomFrom(msgs),{sender:vup.name});
+  setUnread(chatId);
+  renderDMList();
+}
+
+// =============================================
+//  渲染状态/收入
+// =============================================
+function renderStatus() {
+  const grid = document.getElementById('status-grid');
+  const vups = G.vups.filter(v=>!v.fired);
+  if(vups.length===0) {
+    grid.innerHTML = '<div style="color:#6b6b9a;grid-column:1/-1;padding:40px 0;text-align:center;">暂无主播，前往招聘页面招募吧！</div>';
+    return;
+  }
+  grid.innerHTML = vups.map(vup=>`
+    <div class="status-card">
+      <div class="status-card-top">
+        <div class="status-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+        <div>
+          <div class="status-name">${vup.name}</div>
+          <div class="status-tag">${vup.tags.join(' · ')}</div>
+        </div>
+        <div class="status-badge ${STATUS_CLS[vup.status]}">${STATUS_TEXT[vup.status]}</div>
+      </div>
+      <div class="affinity-row">
+        <span>好感度</span>
+        <div class="affinity-track-full">
+          <div class="affinity-fill-full" style="width:${vup.affinity}%"></div>
+        </div>
+        <span class="affinity-value">${vup.affinity}</span>
+      </div>
+      <div style="font-size:.82em;color:#6b6b9a;margin-bottom:12px;">今日收益：<span style="color:#34d399">+¥${vup.todayEarned}</span> | 累计：<span style="color:#a78bfa">+¥${vup.totalEarned}</span></div>
+      <button class="btn-fire" onclick="confirmFire('${vup.id}')">🚫 解雇此主播</button>
+    </div>
+  `).join('');
+}
+
+function renderIncome() {
+  const vups = G.vups.filter(v=>!v.fired);
+  document.getElementById('today-income').textContent = G.todayIncome.toLocaleString();
+  document.getElementById('total-income').textContent = G.totalIncome.toLocaleString();
+  const list = document.getElementById('income-list');
+  if(vups.length===0) {
+    list.innerHTML = '<div style="color:#6b6b9a;padding:20px;text-align:center;">暂无主播收入数据</div>';
+    return;
+  }
+  list.innerHTML = vups.map(vup=>`
+    <div class="income-card">
+      <div class="income-avatar" style="background:${vup.bg}">${vup.emoji}</div>
+      <div class="income-info">
+        <div class="income-name">${vup.name}</div>
+        <div class="income-sessions">直播${vup.status==='live'?'中':'已结束'} · 加入第${vup.recruitDay}天</div>
+      </div>
+      ${vup.status==='live'?'<div class="income-live-badge">LIVE</div>':''}
+      <div class="income-amount">+¥${vup.totalEarned.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+function refreshBalance() {
+  document.getElementById('display-balance').textContent = G.balance.toLocaleString();
+  renderRecruitGrid();
+}
+
+// =============================================
+//  Tab切换
+// =============================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`nav-${tab}`).classList.add('active');
+  if(tab==='status') renderStatus();
+  if(tab==='income') renderIncome();
+}
+
+// =============================================
+//  结局
+// =============================================
+function triggerEnding(type, vup=null) {
+  clearInterval(G.dayTimer);
+  const screen = document.getElementById('ending-screen');
+  document.getElementById('game-screen').style.display='none';
+  screen.style.display='flex';
+  const endings = {
+    love: {
+      title: '💗 恋爱结局',
+      text: `你和 ${vup?vup.name:'主播'} 走到了一起。\n公会在爱的滋润下蒸蒸日上，这段独特的缘分，是经营路上最美丽的意外。\n\n感谢你经历这段旅程。`,
+    },
+    perfect: {
+      title: '✨ 完美结局',
+      text: `所有主播都深深信任你，公会好感爆棚！\n${G.guildName} 成为了最受欢迎的虚拟主播公会，\n而你，成为了所有人心中最好的老板。`,
+    },
+    empty: {
+      title: '🌑 空城结局',
+      text: `公会里的主播一个个离开，最终人去楼空。\n${G.guildName} 的名字还在，却再也没有了欢声笑语。\n下次，也许会更好？`,
+    },
+  };
+  const e = endings[type]||endings.empty;
+  document.getElementById('ending-title').textContent = e.title;
+  document.getElementById('ending-text').textContent = e.text;
+}
+
+// =============================================
+//  Toast通知
+// =============================================
+function showToast(text, type='normal') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = text;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(), 4000);
+}
+
+// =============================================
+//  工具函数
+// =============================================
+function randomFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function shuffle(arr) { return [...arr].sort(()=>Math.random()-.5); }
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
