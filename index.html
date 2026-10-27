@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(￣ω￣;)神秘小网站喵</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            color: #333842;
+            line-height: 1.6;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* ========== 苹果液态玻璃导航栏 ========== */
+        nav {
+            position: sticky;
+            top: 12px;
+            z-index: 99;
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 18px;
+            /* 液态玻璃效果 */
+            background: rgba(255,255,255,0.22);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.45);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            padding: 0.8rem 1rem;
+            gap:2.8rem;
+        }
+        .nav-container a {
+            text-decoration: none;
+            color:#222831;
+            font-weight:500;
+            font-size:1.05rem;
+            padding:6px 10px;
+            border-radius:10px;
+            transition: all 0.24s ease;
+        }
+        .nav-container a.active{
+            background:rgba(74,144,217,0.18);
+            color:#4A90D9;
+        }
+        .nav-container a:hover:not(.active) {
+            background:rgba(0,0,0,0.05);
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* ========== 页面板块 单页切换 ========== */
+        .page{
+            display:none;
+        }
+        .page.active{
+            display:block;
+        }
+
+        /* ----简介页---- */
+        .intro-page{
+            min-height:75vh;
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            align-items:center;
+        }
+        .intro-big-title{
+            font-size:4.2rem;
+            font-weight:bold;
+            color:#222831;
+            margin-bottom:1rem;
+        }
+        .intro-sub-text{
+            font-size:1.4rem;
+            color:#555;
+            margin-bottom:1.4rem;
+        }
+        /*北京时间 单独一行，大字体 */
+        .intro-time {
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #111827;
+            letter-spacing:4px;
+        }
+
+        /* ----游戏页---- */
+        .section h2 {
+            font-size:1.6rem;
+            color:#222831;
+            border-left:4px solid #4A90D9;
+            padding-left:12px;
+            margin:2.4rem 0 1rem;
+        }
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+            gap: 20px;
+        }
+        .game-card {
+            background: #fff;
+            padding: 20px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.05);
+            text-align:center;
+            transition: transform 0.25s;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+        }
+        .game-card a {
+            display:inline-block;
+            margin-top:12px;
+            padding:8px 18px;
+            background:#4A90D9;
+            color:white;
+            text-decoration:none;
+            border-radius:8px;
+        }
+        .game-card a:hover{
+            background:#3b7fc4;
+        }
+
+        /* ----关于我页面---- */
+        .about-page{
+            min-height:70vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .hint-text{
+            color:#999;
+            font-size:1.1rem;
+        }
+
+        /* ==========开屏公告弹窗========== */
+        .mask-layer{
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.45);
+            z-index:999;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .announce-popup{
+            background:#ffffff;
+            width:min(90%,480px);
+            border-radius:16px;
+            padding:2rem;
+            position:relative;
+        }
+        .announce-popup h3{
+            margin-bottom:1rem;
+            font-size:1.3rem;
+        }
+        .announce-content{
+            font-size:1.05rem;
+            line-height:1.8;
+            margin-bottom:2rem;
+        }
+        .announce-footer{
+            text-align:right;
+        }
+        .announce-btn{
+            padding:9px 22px;
+            border-radius:9px;
+            border:none;
+            background:#4A90D9;
+            color:white;
+            font-size:1rem;
+        }
+        .announce-btn:disabled{
+            background:#94b8dd;
+        }
+
+        /* ==========塔菲彩蛋弹窗========== */
+        .taffi-popup{
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.55);
+            z-index:999;
+            display:none;
+            align-items:center;
+            justify-content:center;
+        }
+        .taffi-box{
+            background:#fff;
+            width:min(90%,420px);
+            border-radius:16px;
+            padding:2rem;
+            position:relative;
+        }
+        .close-cross{
+            position:absolute;
+            top:14px;
+            right:16px;
+            font-size:1.6rem;
+            cursor:pointer;
+            color:#666;
+        }
+        .taffi-text{
+            font-size:1.3rem;
+            text-align:center;
+            margin:1.2rem 0;
+        }
+        /* 这里之后你替换图片src */
+        .taffi-img{
+            width:100%;
+            border-radius:10px;
+            margin-top:1rem;
+        }
+
+        footer {
+            text-align:center;
+            padding:2rem;
+            color:#777;
+            font-size:0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .nav-container {
+                gap:1.4rem;
+            }
+            .intro-big-title{
+                font-size:3rem;
+            }
+            .intro-time {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!--开屏公告弹窗-->
+<div class="mask-layer" id="announceMask">
+    <div class="announce-popup">
+        <h3>📢 网站更新公告</h3>
+        <div class="announce-content">
+            新增一些小游戏，更改了域名，更新了新的UI,保留了奶娃小游戏<br>
+            感谢🙏同学投稿
+        </div>
+        <div class="announce-footer">
+            <button class="announce-btn" id="announceBtn" disabled>5秒</button>
+        </div>
+    </div>
+</div>
+
+<!--塔菲彩蛋弹窗 默认隐藏-->
+<div class="taffi-popup" id="taffiMask">
+    <div class="taffi-box">
+        <span class="close-cross" id="closeTaffi">×</span>
+        <div class="taffi-text">关注塔菲喵，关注塔菲，谢谢喵</div>
+        <!-- =========把你的图片链接替换到下面src属性========= -->
+        <img class="taffi-img" src="" alt="塔菲图片">
+    </div>
+</div>
+
+    <!--导航栏 液态玻璃-->
+    <nav>
+        <div class="nav-container">
+            <a href="#intro" class="nav-link active" data-page="intro">简介</a>
+            <a href="#game" class="nav-link" data-page="game">游戏</a>
+            <a href="#about" class="nav-link" data-page="about">关于我</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 简介页面（默认） -->
+        <div class="page active intro-page" id="intro">
+            <div class="intro-big-title">无言</div>
+            <div class="intro-sub-text">此网站专为8.16制作</div>
+            <div class="intro-time" id="beijingTime">00:00:00</div>
+        </div>
+
+        <!--游戏页面-->
+        <div class="page game-page" id="game">
+            <div class="section">
+                <h2>第1分区 · 奶蛙小游戏</h2>
+                <div class="game-grid">
+                    <div class="game-card">
+                        <h3>奶蛙工厂</h3>
+                        <p>抓奶蛙休闲小游戏</p>
+                        <a href="https://66970010-boop.github.io/frog-miner/" target="_blank">开始游玩</a>
+                    </div>
+                    <div class="game-card">
+                        <h3>奶蛙消消乐</h3>
+                        <p>滑动消除休闲游戏</p>
+                        <a href="https://chenckx0614.github.io/naiwaxxl/" target="_blank">开始游玩</a>
+                    </div>
+                    <div class="game-card">
+                        <h3>奶娃的小窝</h3>
+                        <p>养成陪伴小游戏</p>
+                        <a href="https://naiwaxiaowu.pages.dev/" target="_blank">开始游玩</a>
+                    </div>
+                </div>
+
+                <h2>第2分区 · 其他小游戏</h2>
+                <div class="game-grid">
+                    <div class="game-card">
+                        <h3>超级马里奥</h3>
+                        <p>经典闯关复刻版</p>
+                        <a href="https://playmario.github.io/HTML5_Client/" target="_blank">开始游玩</a>
+                    </div>
+                    <div class="game-card">
+                        <h3>森林冰火人</h3>
+                        <p>双人合作闯关</p>
+                        <a href="https://h.4399.com/zzy/242016.htm" target="_blank">开始游玩</a>
+                    </div>
+                    <div class="game-card">
+                        <h3>植物大战僵尸</h3>
+                        <p>网页复刻塔防</p>
+                        <a href="https://pvz.ee/" target="_blank">开始游玩</a>
+                    </div>
+                    <div class="game-card">
+                        <h3>鱼吃鱼</h3>
+                        <p>吞噬类休闲小游戏</p>
+                        <a href="https://xiaoyouxi.qq.com/detail/wxd705de6e4f88cc89.html" target="_blank">开始游玩</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--关于我页面，添加提示文字：有神秘小彩蛋，点击5次空白触发彩蛋-->
+        <div class="page about-page" id="about">
+            <div class="hint-text">✨有神秘小彩蛋</div>
+        </div>
+    </div>
+
+    <footer>
+        © 2026 WUYAN. All rights reserved.
+    </footer>
+
+<script>
+// =========1.开屏弹窗倒计时5秒==========
+const announceMask = document.getElementById('announceMask');
+const announceBtn = document.getElementById('announceBtn');
+let countdown = 5;
+announceBtn.innerText = `${countdown}秒`;
+
+const timer = setInterval(()=>{
+    countdown--;
+    if(countdown>0){
+        announceBtn.innerText = `${countdown}秒`;
+    }else{
+        clearInterval(timer);
+        announceBtn.innerText = "完成";
+        announceBtn.disabled = false;
+    }
+},1000);
+
+announceBtn.onclick = ()=>{
+    announceMask.style.display = 'none';
+};
+
+// =========2.导航单页切换==========
+const navLinks = document.querySelectorAll('.nav-link');
+const pages = document.querySelectorAll('.page');
+
+navLinks.forEach(link=>{
+    link.addEventListener('click',function(e){
+        e.preventDefault();
+        const targetPageId = this.dataset.page;
+
+        navLinks.forEach(l=>l.classList.remove('active'));
+        this.classList.add('active');
+
+        pages.forEach(p=>p.classList.remove('active'));
+        document.getElementById(targetPageId).classList.add('active');
+    })
+})
+
+// =========3.关于我页面点击空白5次弹出塔菲彩蛋==========
+let clickCounter = 0;
+const aboutPageDom = document.getElementById("about");
+const taffiMask = document.getElementById("taffiMask");
+const closeTaffiBtn = document.getElementById("closeTaffi");
+
+aboutPageDom.addEventListener('click',()=>{
+    clickCounter++;
+    if(clickCounter >=5){
+        taffiMask.style.display="flex";
+        clickCounter = 0;
+    }
+})
+//关闭叉号
+closeTaffiBtn.onclick = ()=>{
+    taffiMask.style.display="none";
+}
+//点击遮罩层也可以关闭
+taffiMask.addEventListener('click',(e)=>{
+    if(e.target === taffiMask){
+        taffiMask.style.display="none";
+    }
+})
+
+// =========4.北京时间 HH:mm:ss ==========
+function updateBeijingTime() {
+    const timeDom = document.getElementById('beijingTime');
+    const fmt = new Intl.DateTimeFormat('zh-CN',{
+        timeZone:'Asia/Shanghai',
+        hour:'2-digit',
+        minute:'2-digit',
+        second:'2-digit',
+        hour12:false
+    });
+    timeDom.textContent = fmt.format(new Date());
+}
+updateBeijingTime();
+setInterval(updateBeijingTime,1000);
+</script>
+</body>
+</html>
