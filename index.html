@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(￣ω￣;)神秘小网站喵</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: #f8f9fa; color: #333842; line-height: 1.6; }
+        html { scroll-behavior: smooth; }
+        nav { position: sticky; top: 12px; z-index: 99; max-width: 720px; margin: 0 auto; border-radius: 18px; background: rgba(255,255,255,0.22); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .nav-container { display: flex; justify-content: center; padding: 0.8rem 1rem; gap: 2.2rem; flex-wrap: wrap; }
+        .nav-container a { text-decoration: none; color: #222831; font-weight: 500; font-size: 1.05rem; padding: 6px 10px; border-radius: 10px; transition: all 0.24s ease; }
+        .nav-container a.active { background: rgba(74,144,217,0.18); color: #4A90D9; }
+        .nav-container a:hover:not(.active) { background: rgba(0,0,0,0.05); }
+        .container { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .intro-page { min-height: 75vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .intro-big-title { font-size: 4.2rem; font-weight: bold; color: #222831; margin-bottom: 1rem; }
+        .intro-time { font-size: 2.4rem; font-weight: 700; color: #111827; letter-spacing: 4px; }
+        .section h2 { font-size: 1.6rem; color: #222831; border-left: 4px solid #4A90D9; padding-left: 12px; margin: 2.4rem 0 1rem; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 20px; }
+        .game-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; transition: transform 0.25s; }
+        .game-card:hover { transform: translateY(-4px); }
+        .game-card a { display: inline-block; margin-top: 12px; padding: 8px 18px; background: #4A90D9; color: white; text-decoration: none; border-radius: 8px; }
+        .game-card a:hover { background: #3b7fc4; }
+        .about-page { min-height: 70vh; display: flex; align-items: center; justify-content: center; }
+        .hint-text { color: #999; font-size: 1.1rem; }
+        .mask-layer { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .announce-popup { background: #ffffff; width: min(90%,480px); border-radius: 16px; padding: 2rem; position: relative; cursor: default; }
+        .announce-popup h3 { margin-bottom: 1rem; font-size: 1.3rem; }
+        .announce-content { font-size: 1.05rem; line-height: 1.8; margin-bottom: 2rem; }
+        .announce-footer { text-align: right; }
+        .announce-btn { padding: 9px 22px; border-radius: 9px; border: none; background: #4A90D9; color: white; font-size: 1rem; cursor: pointer; }
+        .announce-btn:disabled { background: #b9c6d6; cursor: not-allowed; opacity: 0.85; }
+        .testpwd-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .testpwd-box { background: #fff; width: min(90%,420px); border-radius: 16px; padding: 2rem; }
+        .testpwd-box h3 { margin-bottom: 1rem; text-align: center; }
+        .testpwd-input { width: 100%; padding: 0.8rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 1rem; }
+        .pwd-err { color: #dd3333; text-align: center; margin-bottom: 0.8rem; min-height: 1.4em; }
+        .test-buttons-area { display: none; margin-top: 1rem; }
+        .test-buttons-area button { width: 100%; margin: 6px 0; padding: 0.75rem; border-radius: 8px; border: none; font-size: 1rem; cursor: pointer; background: #4A90D9; color: #fff; }
+        .test-buttons-area button:hover { background: #3b7fc4; }
+        .testpwd-btns { display: flex; gap: 12px; margin-top: 0.5rem; }
+        .testpwd-btns button { flex: 1; padding: 0.75rem; border-radius: 8px; border: none; font-size: 1rem; cursor: pointer; }
+        .btn-ok { background: #4A90D9; color: white; }
+        .btn-cancel { background: #eeeeee; color: #333; }
+        .chat-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1001; display: none; align-items: center; justify-content: center; }
+        .chat-box { background: #18181b; color: #eee; width: min(95%,760px); max-height: 90vh; border-radius: 14px; padding: 20px; position: relative; overflow-y: auto; }
+        .chat-close { position: absolute; top: 12px; right: 16px; font-size: 1.8rem; cursor: pointer; color: #aaa; line-height: 1; }
+        .chat-box .box { border: 1px solid #333; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+        .chat-box .my-uid { font-size: 22px; color: #60a5fa; font-weight: bold; margin: 8px 0; }
+        .chat-box input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #444; background: #27272a; color: #fff; margin: 8px 0; font-size: 16px; }
+        .chat-box button { padding: 9px 16px; border-radius: 8px; border: none; background: #2563eb; color: #fff; cursor: pointer; margin: 4px; font-size: 15px; }
+        .chat-box button:active { opacity: 0.85; }
+        .chat-box .friend-item { padding: 10px; border: 1px solid #333; border-radius: 8px; margin: 6px 0; display: flex; justify-content: space-between; align-items: center; }
+        .chat-box .chat-area { height: 320px; border: 1px solid #333; border-radius: 8px; padding: 12px; overflow-y: auto; margin: 10px 0; }
+        .chat-box .msg-self { text-align: right; margin: 6px 0; }
+        .chat-box .msg-other { text-align: left; margin: 6px 0; }
+        .chat-box .bubble-self { display: inline-block; background: #2563eb; padding: 8px 12px; border-radius: 10px; max-width: 75%; }
+        .chat-box .bubble-other { display: inline-block; background: #3f3f46; padding: 8px 12px; border-radius: 10px; max-width: 75%; }
+        .chat-box .hint { color: #aaa; font-size: 14px; margin: 6px 0; }
+        footer { text-align: center; padding: 2rem; color: #777; font-size: 0.9rem; }
+        @media (max-width: 600px) { .nav-container { gap: 1rem; } .intro-big-title { font-size: 3rem; } .intro-time { font-size: 1.7rem; } }
+    </style>
+</head>
+<body>
+<!--开屏公告弹窗-->
+<div class="mask-layer" id="announceMask">
+    <div class="announce-popup" id="announceBox">
+        <h3>📢 网站更新公告</h3>
+        <div class="announce-content">
+            新增一些小游戏，更改了域名，更新了新的UI,保留了奶娃小游戏<br>
+            感谢🙏同学投稿<br>
+            无言喵喵喵喵
+        </div>
+        <div class="announce-footer">
+            <button class="announce-btn" id="announceBtn" disabled>请稍候 (3s)</button>
+        </div>
+    </div>
+</div>
+
+<!--测试分区密码弹窗-->
+<div class="testpwd-popup" id="testPwdMask">
+    <div class="testpwd-box">
+        <h3>🔐 测试分区，请输入密码</h3>
+        <div class="pwd-err" id="pwdErr"></div>
+        <input class="testpwd-input" id="testPwdInput" type="password" placeholder="输入访问密码" autocomplete="off">
+        <div class="testpwd-btns" id="pwdBtnWrap">
+            <button class="btn-cancel" id="pwdCancel">取消</button>
+            <button class="btn-ok" id="pwdOk">确认</button>
+        </div>
+        <div class="test-buttons-area" id="selectZone">
+            <p style="text-align:center;margin-bottom:0.5rem;">请选择要打开的功能</p>
+            <button id="goMaiMai">maimai查分器</button>
+            <button id="goHedssaz">hedssaz.com</button>
+            <button id="openChatDemo">6位UID聊天演示</button>
+        </div>
+    </div>
+</div>
+
+<!--UID聊天弹窗-->
+<div class="chat-popup" id="chatMask">
+    <div class="chat-box">
+        <span class="chat-close" id="chatClose">×</span>
+        <div class="box">
+            <h3>你的账号信息</h3>
+            <div class="hint">UID保存在浏览器本地，关闭网页再打开不变，6位数字</div>
+            <div>我的UID：<div class="my-uid" id="myUid"></div></div>
+        </div>
+        <div class="box">
+            <h3>添加好友（输入对方6位UID）</h3>
+            <input id="addFriendInput" placeholder="输入好友6位UID" type="number">
+            <br>
+            <button id="addFriendBtn">添加好友</button>
+            <div class="hint" id="friendHint"></div>
+            <h4 style="margin-top:12px;">好友列表</h4>
+            <div id="friendList"></div>
+        </div>
+        <div class="box">
+            <h3>聊天窗口【⚠仅本地模拟，不能跨电脑真实发消息】</h3>
+            <div class="hint">选中好友后聊天；没有后端服务器，消息只存在本机做演示</div>
+            <div class="chat-area" id="chatBox"></div>
+            <input id="chatInput" placeholder="输入消息" />
+            <button id="sendBtn">发送</button>
+        </div>
+    </div>
+</div>
+
+<nav>
+    <div class="nav-container">
+        <a href="#intro" class="nav-link active" data-page="intro">简介</a>
+        <a href="#game" class="nav-link" data-page="game">游戏</a>
+        <a href="#about" class="nav-link" data-page="about">关于我</a>
+        <a href="javascript:void(0)" id="openTestZone">测试分区</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page active intro-page" id="intro">
+        <div class="intro-big-title">无言</div>
+        <div class="intro-time" id="beijingTime">00:00:00</div>
+    </div>
+    <div class="page game-page" id="game">
+        <div class="section">
+            <h2>第1分区 · 奶蛙小游戏</h2>
+            <div class="game-grid">
+                <div class="game-card">
+                    <h3>奶蛙工厂</h3>
+                    <p>抓奶蛙休闲小游戏</p>
+                    <a href="https://66970010-boop.github.io/frog-miner/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>奶蛙消消乐</h3>
+                    <p>滑动消除休闲游戏</p>
+                    <a href="https://chenckx0614.github.io/naiwaxxl/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>奶娃的小窝</h3>
+                    <p>养成陪伴小游戏</p>
+                    <a href="https://naiwaxiaowu.pages.dev/" target="_blank">开始游玩</a>
+                </div>
+            </div>
+            <h2>第2分区 · 其他小游戏</h2>
+            <div class="game-grid">
+                <div class="game-card">
+                    <h3>超级马里奥</h3>
+                    <p>经典闯关复刻版</p>
+                    <a href="https://playmario.github.io/HTML5_Client/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>森林冰火人</h3>
+                    <p>双人合作闯关</p>
+                    <a href="https://hi8.com/binghuo" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>植物大战僵尸</h3>
+                    <p>网页复刻塔防</p>
+                    <a href="https://pvz.ee/" target="_blank">开始游玩</a>
+                </div>
+                <div class="game-card">
+                    <h3>鱼吃鱼</h3>
+                    <p>吞噬类休闲小游戏</p>
+                    <a href="https://theworldatplay.com/zh-CN/fish-eat-fish" target="_blank">开始游玩</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="page about-page" id="about">
+        <div class="hint-text">✨有神秘小彩蛋，点击5次空白触发</div>
+    </div>
+</div>
+<footer>
+    © 2026 WUYAN. All rights reserved.
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // =========1.开屏公告 倒计时3秒后可关闭==========
+    const announceMask = document.getElementById('announceMask');
+    const announceBtn = document.getElementById('announceBtn');
+
+    let announceCanClose = false;
+    let announceTimer = null;
+    let announceLeft = 3;
+
+    function closeAnnounce() {
+        if (!announceCanClose) return;
+        if (announceTimer) {
+            clearInterval(announceTimer);
+            announceTimer = null;
+        }
+        announceMask.style.display = 'none';
+    }
+
+    function startAnnounceCountdown() {
+        announceCanClose = false;
+        announceLeft = 3;
+        announceBtn.disabled = true;
+        announceBtn.textContent = `请稍候 (${announceLeft}s)`;
+
+        announceTimer = setInterval(() => {
+            announceLeft--;
+            if (announceLeft > 0) {
+                announceBtn.textContent = `请稍候 (${announceLeft}s)`;
+            } else {
+                clearInterval(announceTimer);
+                announceTimer = null;
+                announceCanClose = true;
+                announceBtn.disabled = false;
+                announceBtn.textContent = '我知道了';
+            }
+        }, 1000);
+    }
+
+    announceMask.addEventListener('click', function (e) {
+        if (e.target === announceMask) closeAnnounce();
+    });
+    announceBtn.addEventListener('click', closeAnnounce);
+
+    startAnnounceCountdown();
+
+    // =========2.导航单页切换==========
+    const navLinks = document.querySelectorAll('.nav-link');
+    const pages = document.querySelectorAll('.page');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetPageId = this.dataset.page;
+            navLinks.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(targetPageId).classList.add('active');
+        });
+    });
+
+    // =========3.彩蛋：点击5次触发==========
+    let clickCounter = 0;
+    const aboutPageDom = document.getElementById('about');
+    const EGG_URL = 'https://wwbbe.lanzoub.com/i4SxY4gr6kdc';
+    const EGG_PWD = 'mjmj';
+
+    function triggerEggDownload() {
+        alert(`🔒该文件需要提取码！密码：${EGG_PWD}`);
+        window.open(EGG_URL, '_blank');
+    }
+
+    aboutPageDom.addEventListener('click', () => {
+        clickCounter++;
+        if (clickCounter >= 5) {
+            triggerEggDownload();
+            clickCounter = 0;
+        }
+    });
+
+    // =========4.北京时间 HH:mm:ss ==========
+    function updateBeijingTime() {
+        const timeDom = document.getElementById('beijingTime');
+        const fmt = new Intl.DateTimeFormat('zh-CN', {
+            timeZone: 'Asia/Shanghai',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        timeDom.textContent = fmt.format(new Date());
+    }
+    updateBeijingTime();
+    setInterval(updateBeijingTime, 1000);
+
+    // =========5.测试分区弹窗==========
+    const openTestZoneBtn = document.getElementById('openTestZone');
+    const testPwdMask = document.getElementById('testPwdMask');
+    const testPwdInput = document.getElementById('testPwdInput');
+    const pwdOkBtn = document.getElementById('pwdOk');
+    const pwdCancelBtn = document.getElementById('pwdCancel');
+    const pwdErrText = document.getElementById('pwdErr');
+    const pwdBtnWrap = document.getElementById('pwdBtnWrap');
+    const selectZone = document.getElementById('selectZone');
+    const goMaiMaiBtn = document.getElementById('goMaiMai');
+    const goHedssazBtn = document.getElementById('goHedssaz');
+    const openChatDemoBtn = document.getElementById('openChatDemo');
+
+    const CORRECT_PWD = '521314';
+    const URL_MAIMAI = 'https://maimai.lxns.net/';
+    const URL_HEDSSAZ = 'https://hedssaz.com';
+
+    openTestZoneBtn.addEventListener('click', () => {
+        testPwdMask.style.display = 'flex';
+        testPwdInput.value = '';
+        pwdErrText.textContent = '';
+        pwdBtnWrap.style.display = 'flex';
+        selectZone.style.display = 'none';
+        testPwdInput.focus();
+    });
+
+    function closePwdPopup() {
+        testPwdMask.style.display = 'none';
+    }
+
+    pwdCancelBtn.addEventListener('click', closePwdPopup);
+
+    pwdOkBtn.addEventListener('click', () => {
+        const input = testPwdInput.value.trim();
+        if (input === CORRECT_PWD) {
+            pwdErrText.textContent = '';
+            pwdBtnWrap.style.display = 'none';
+            selectZone.style.display = 'block';
+        } else {
+            pwdErrText.textContent = '❌ 密码错误，请重新输入';
+        }
+    });
+
+    testPwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') pwdOkBtn.click();
+    });
+
+    testPwdMask.addEventListener('click', (e) => {
+        if (e.target === testPwdMask) closePwdPopup();
+    });
+
+    goMaiMaiBtn.addEventListener('click', () => {
+        window.open(URL_MAIMAI, '_blank');
+    });
+    goHedssazBtn.addEventListener('click', () => {
+        window.open(URL_HEDSSAZ, '_blank');
+    });
+    openChatDemoBtn.addEventListener('click', () => {
+        closePwdPopup();
+        document.getElementById('chatMask').style.display = 'flex';
+        initChatUid();
+    });
+
+    // =========6.UID聊天功能（本地模拟）==========
+    const chatMask = document.getElementById('chatMask');
+    const chatCloseBtn = document.getElementById('chatClose');
+    const myUidDom = document.getElementById('myUid');
+    const addFriendInput = document.getElementById('addFriendInput');
+    const addFriendBtn = document.getElementById('addFriendBtn');
+    const friendHint = document.getElementById('friendHint');
+    const friendListDom = document.getElementById('friendList');
+    const chatBoxDom = document.getElementById('chatBox');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let chatInited = false;
+    let myUid = '';
+    let friends = [];
+    let currentFriend = null;
+    let messages = {};
+
+    function loadFromStorage() {
+        myUid = localStorage.getItem('wuyan_my_uid') || '';
+        try {
+            friends = JSON.parse(localStorage.getItem('wuyan_friends') || '[]');
+        } catch (e) { friends = []; }
+        try {
+            messages = JSON.parse(localStorage.getItem('wuyan_messages') || '{}');
+        } catch (e) { messages = {}; }
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('wuyan_my_uid', myUid);
+        localStorage.setItem('wuyan_friends', JSON.stringify(friends));
+        localStorage.setItem('wuyan_messages', JSON.stringify(messages));
+    }
+
+    function genUid() {
+        return String(Math.floor(100000 + Math.random() * 900000));
+    }
+
+    function initChatUid() {
+        if (chatInited) return;
+        chatInited = true;
+        loadFromStorage();
+        if (!myUid || myUid.length !== 6) {
+            myUid = genUid();
+            saveToStorage();
+        }
+        myUidDom.textContent = myUid;
+        renderFriendList();
+        bindChatEvents();
+    }
+
+    function bindChatEvents() {
+        chatCloseBtn.addEventListener('click', () => {
+            chatMask.style.display = 'none';
+        });
+        chatMask.addEventListener('click', (e) => {
+            if (e.target === chatMask) chatMask.style.display = 'none';
+        });
+
+        addFriendBtn.addEventListener('click', () => {
+            const uid = addFriendInput.value.trim();
+            if (!/^\d{6}$/.test(uid)) {
+                friendHint.textContent = '❌ 请输入6位数字UID';
+                return;
+            }
+            if (uid === myUid) {
+                friendHint.textContent = '❌ 不能添加自己为好友';
+                return;
+            }
+            if (friends.some(f => f.uid === uid)) {
+                friendHint.textContent = '⚠ 该好友已存在';
+                return;
+            }
+            friends.push({ uid });
+            if (!messages[uid]) messages[uid] = [];
+            addFriendInput.value = '';
+            friendHint.textContent = '✅ 添加成功';
+            saveToStorage();
+            renderFriendList();
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+
+    function renderFriendList() {
+        friendListDom.innerHTML = '';
+        if (friends.length === 0) {
+            friendListDom.innerHTML = '<div class="hint">还没有好友，先添加一个吧</div>';
+            return;
+        }
+        friends.forEach
